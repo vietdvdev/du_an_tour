@@ -1,0 +1,204 @@
+/* dm-form-large.css
+   Large modern form for category create/edit
+   Scoped with dm- prefix to avoid conflicts
+*/
+
+/* Page container to center form */
+.dm-page {
+  padding: 28px 22px;
+  min-height: calc(100vh - 80px);
+  background: #f5f7fa;
+  font-family: Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Container centers card and allows large left layout like AdminLTE */
+.dm-form-container {
+  max-width: 880px;
+  margin: 18px auto;
+  padding: 0 12px;
+}
+
+/* Card */
+.dm-form-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(15,23,42,0.08);
+  border: 1px solid rgba(15,23,42,0.04);
+  padding: 26px;
+}
+
+/* Title */
+.dm-form-title {
+  margin: 0 0 18px 0;
+  font-size: 28px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* general error box */
+.dm-error-box {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(254,226,226,0.9);
+  color: #9b2c2c;
+  border: 1px solid rgba(220,38,38,0.12);
+}
+
+/* Form */
+.dm-form { display: block; }
+
+/* Row */
+.dm-row { margin-bottom: 16px; }
+
+/* Inline row (for toggle & small items) */
+.dm-row-inline { display: flex; align-items: center; gap: 12px; }
+
+/* Label */
+.dm-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #111827;
+  font-weight: 700;
+  font-size: 15px;
+}
+.dm-required { color: #e11d48; margin-left:6px; }
+
+/* Input */
+.dm-input, .dm-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ee;
+  font-size: 15px;
+  color: #0f172a;
+  background: #fff;
+  transition: box-shadow .16s ease, border-color .16s ease, transform .08s ease;
+}
+.dm-input:focus, .dm-textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.08);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+/* Textarea slightly taller */
+.dm-textarea { min-height:120px; resize: vertical; }
+
+/* field error */
+.dm-field-error {
+  display:block;
+  margin-top:8px;
+  color:#dc2626;
+  font-size: 13px;
+}
+
+/* Toggle switch (custom, accessible) */
+.dm-toggle-wrap {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.dm-toggle-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* visible toggle */
+.dm-toggle-label {
+  width:48px;
+  height:28px;
+  background: linear-gradient(180deg,#eef2ff,#f8fbff);
+  border-radius: 999px;
+  display:inline-block;
+  position: relative;
+  border:1px solid rgba(15,23,42,0.06);
+  transition: background .18s ease, box-shadow .12s ease, transform .08s ease;
+}
+.dm-toggle-ball {
+  width:20px;
+  height:20px;
+  background: #fff;
+  border-radius: 50%;
+  position:absolute;
+  left:4px;
+  top:4px;
+  box-shadow: 0 4px 12px rgba(2,6,23,0.08);
+  transition: left .18s cubic-bezier(.2,.9,.2,1), transform .12s ease;
+}
+/* when checked move ball and change color */
+.dm-toggle-checkbox:checked + .dm-toggle-label {
+  background: linear-gradient(90deg,#34d399,#10b981);
+  border-color: rgba(16,185,129,0.18);
+}
+.dm-toggle-checkbox:checked + .dm-toggle-label .dm-toggle-ball {
+  left: 24px;
+  transform: translateX(0);
+}
+
+/* Toggle text with icon */
+.dm-toggle-text {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:#374151;
+  font-weight:600;
+}
+.dm-icon-eye { color:#10b981; font-size:1.05rem; }
+
+/* Actions */
+.dm-actions {
+  display:flex;
+  gap:12px;
+  margin-top: 8px;
+}
+
+/* Buttons */
+.dm-btn-primary, .dm-btn-secondary {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 16px;
+  border-radius: 10px;
+  font-weight:700;
+  font-size:15px;
+  text-decoration:none;
+  border:1px solid transparent;
+  cursor:pointer;
+}
+
+/* primary */
+.dm-btn-primary {
+  background: linear-gradient(180deg,#2b6ee6,#2563eb);
+  color:#fff;
+  box-shadow: 0 8px 22px rgba(37,99,235,0.14);
+  border-color: rgba(37,99,235,0.14);
+}
+.dm-btn-primary:hover { transform: translateY(-2px); }
+
+/* secondary */
+.dm-btn-secondary {
+  background: #fff;
+  color: #374151;
+  border:1px solid #e6e9ee;
+}
+.dm-btn-secondary:hover { background:#f8fafc; }
+
+/* button icons */
+.dm-btn-icon { font-size:1rem; }
+
+/* Responsive adjustments */
+@media (max-width: 880px) {
+  .dm-form-card { padding:18px; }
+  .dm-form-title { font-size:22px; }
+  .dm-form-container { padding: 0 14px; }
+}
+
+/* Very small screens: stack toggle nicely */
+@media (max-width: 480px) {
+  .dm-row-inline { flex-direction: column; align-items:flex-start; gap:6px; }
+  .dm-actions { flex-direction: column; }
+  .dm-btn-primary, .dm-btn-secondary { width:100%; justify-content:center; }
+}

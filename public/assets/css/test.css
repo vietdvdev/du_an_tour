@@ -1,0 +1,212 @@
+/* ====================================================================
+   DM TABLE — css dành riêng cho bảng danh mục
+   KHÔNG đụng vào class Bootstrap / AdminLTE
+   ==================================================================== */
+
+/* ẨN TIÊU ĐỀ ACCESSIBILITY */
+.dm-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+}
+
+/* TABLE WRAPPER */
+.dm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    color: #0f172a;
+    background: #fff;
+}
+
+/* HEADER */
+.dm-thead th {
+    padding: 12px 14px;
+    font-weight: 600;
+    background: #f5f7fb;
+    color: #6b7280;
+    border-bottom: 1px solid #e6e9ee;
+    white-space: nowrap;
+    text-align: left;
+}
+
+/* BODY */
+.dm-tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f1f3f5;
+    vertical-align: top;
+}
+
+/* ROW ZEBRA */
+.dm-tbody tr:nth-child(odd) {
+    background: #ffffff;
+}
+.dm-tbody tr:nth-child(even) {
+    background: #f9fbff;
+}
+
+/* HOVER */
+.dm-tbody tr:hover {
+    background: #eef4ff;
+}
+
+/* COLUMN WIDTHS */
+.dm-col-id { width: 60px; }
+.dm-col-name { width: 200px; }
+.dm-col-desc { width: auto; }
+.dm-col-active { width: 120px; }
+.dm-col-actions { width: 120px; }
+
+/* STATUS BADGE */
+.dm-status {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.dm-active {
+    color: #0e9f6e;
+    background: rgba(14,159,110,0.12);
+}
+
+.dm-inactive {
+    color: #dc2626;
+    background: rgba(220,38,38,0.12);
+}
+
+/* ACTION BUTTON */
+.dm-action-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: #eef3ff;
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.9rem;
+    border: 1px solid #c7d6ff;
+}
+
+.dm-action-btn:hover {
+    background: #dbe7ff;
+    border-color: #2563eb;
+}
+
+
+/* Phần form  */
+
+/* =======================================================================
+   CSS RIÊNG CHO FORM DANH MỤC
+   An toàn, không ảnh hưởng Bootstrap / AdminLTE / Sidebar
+   Prefix: dm-
+======================================================================= */
+
+/* FORM WRAPPER */
+.form-card.dm-form {
+    background: #ffffff;
+    padding: 22px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    max-width: 600px;
+    box-shadow: 0 6px 16px rgba(15,23,42,0.06);
+}
+
+/* FORM GROUP */
+.dm-form .dm-group {
+    margin-bottom: 16px;
+}
+
+/* LABEL */
+.dm-form label.dm-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #0f172a;
+}
+
+.dm-form .required {
+    color: #e11d48;
+}
+
+/* INPUT & TEXTAREA */
+.dm-form input.dm-input,
+.dm-form textarea.dm-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fff;
+    color: #111827;
+}
+
+.dm-form input.dm-input:focus,
+.dm-form textarea.dm-textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+    outline: none;
+}
+
+/* CHECKBOX WRAP */
+.dm-form .dm-checkbox-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.dm-form .dm-checkbox-wrap input {
+    width: 18px;
+    height: 18px;
+}
+
+/* BUTTON AREA */
+.dm-form .dm-actions {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+}
+
+/* CUSTOM BUTTON */
+.dm-form .dm-btn {
+    padding: 10px 16px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    font-size: 0.95rem;
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* PRIMARY */
+.dm-form .dm-btn-primary {
+    background: #2563eb;
+    color: #fff;
+    border-color: #2563eb;
+}
+.dm-form .dm-btn-primary:hover {
+    background: #1d4ed8;
+}
+
+/* SECONDARY */
+.dm-form .dm-btn-secondary {
+    background: #f4f4f5;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+.dm-form .dm-btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+/* Áp dụng cho cả hai thẻ (ví dụ: thẻ có class chung là .element) */
+.element {
+    margin-left: 3px;
+}
+
+/* Thường phải loại bỏ margin cho thẻ đầu tiên để nó không bị lệch */
+.element:first-child {
+    margin-left: 0;
+}
