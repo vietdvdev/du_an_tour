@@ -85,12 +85,9 @@ $router->get('/tour/create', [TourController::class, 'create'])->name('tour.crea
 // [POST] Xử lý lưu Tour mới -> Chuyển hướng sang trang Edit
 $router->post('/tour/store', [TourController::class, 'store'])->name('tour.store');
 
-
 // 3. CHỈNH SỬA TOUR & CÁC TAB CHI TIẾT
-// ------------------------------------------------------------------------------
 // [GET] Hiển thị giao diện chỉnh sửa tổng thể (Chứa các Tabs: Info, Itinerary, Price...)
 $router->get('/tour/edit/{id}', [TourController::class, 'edit'])->name('tour.edit');
-
 // --- TAB 1: Thông tin chung ---
 // [POST] Cập nhật tên, mã, mô tả, danh mục
 $router->post('/tour/update/{id}', [TourController::class, 'update'])->name('tour.update');
@@ -98,7 +95,6 @@ $router->post('/tour/update/{id}', [TourController::class, 'update'])->name('tou
 // --- TAB 2: Lịch trình (Itinerary) ---
 // [POST] Cập nhật danh sách ngày, tiêu đề, nội dung (Xử lý mảng)
 $router->post('/tour/update/itinerary/{id}', [TourController::class, 'updateItinerary'])->name('tour.update.itinerary');
-
 // [POST] Xóa một ngày lịch trình cụ thể (Gọi trực tiếp từ View)
 $router->post('/tour/itinerary/delete-item/{id}', [TourController::class, 'deleteItineraryItem'])->name('tour.itinerary.delete_item');
 // --- TAB 3: Bảng giá (Price) ---
@@ -109,7 +105,7 @@ $router->post('/tour/update/price/{id}', [TourController::class, 'updatePrice'])
 // [POST] Cập nhật chính sách hoàn/hủy
 $router->post('/tour/update/policy/{id}', [TourController::class, 'updatePolicy'])->name('tour.update.policy');
 
-// --- TAB 5: Hình ảnh (Images) ---
+//TAB 5: Hình ảnh (Images) 
 // [POST] Upload ảnh, Xóa ảnh, Đặt ảnh bìa (Multipart form)
 $router->post('/tour/update/images/{id}', [TourController::class, 'updateImages'])->name('tour.update.images');
 
@@ -129,10 +125,24 @@ $router->post('/tour/delete/{id}', [TourController::class, 'delete'])->name('tou
 // [POST] Ẩn/Hiện Tour nhanh (Toggle Active) - Optional
 $router->post('/tour/toggle-active/{id}', [TourController::class, 'toggleActive'])->name('tour.toggle.active');
 
+// [POST] Thêm một NCC vào Tour
+$router->post('/tour/supplier/add/{id}', [TourController::class, 'addSupplier'])->name('tour.supplier.add');
+
+// [POST] Xóa một NCC khỏi Tour
+$router->post('/tour/supplier/delete/{id}', [TourController::class, 'deleteSupplier'])->name('tour.supplier.delete');
 
 
+/* 1. Cập nhật chính sách (Cancel/Refund) */
+// Tương ứng View: route('tour.update.policy', ['id' => $tourId])
+$router->post('/tour/policy/update/{id}', [TourController::class, 'updatePolicy'])->name('tour.update.policy');
 
+/* 2. Thêm Nhà cung cấp vào Tour */
+// Tương ứng View: route('tour.supplier.add', ['id' => $tourId])
+$router->post('/tour/supplier/add/{id}', [TourController::class, 'addSupplier'])->name('tour.supplier.add');
 
+/* 3. Xóa Nhà cung cấp khỏi Tour */
+// Tương ứng View: route('tour.supplier.delete', ['id' => $tourId])
+$router->post('/tour/supplier/delete/{id}', [TourController::class, 'deleteSupplier'])->name('tour.supplier.delete');
 
 // // Group with prefix + middleware
 // $router->group(['prefix'=>'/users', 'middleware'=>[ExampleMiddleware::class]], function(Router $r){

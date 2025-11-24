@@ -68,7 +68,7 @@
                                     formnovalidate
                                     onclick="return confirm('Xác nhận xóa ngày này khỏi Database ngay lập tức?')"
                                     class="btn btn-sm btn-danger">
-                                <i class="fas fa-trash"></i> Xóa (Server)
+                                <i class="fas fa-trash"></i> Xóa ngày
                             </button>
                         <?php else: ?>
                             <button type="button" class="btn btn-sm btn-secondary" onclick="this.closest('.itinerary-item').remove()">
