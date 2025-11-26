@@ -234,6 +234,30 @@ class TourController extends BaseController
         return $this->redirect(route('tour.edit', ['id' => $id]));
     }
 
+    // Trong Class TourController
+
+        public function toggleStatus(Request $req): Response
+        {
+            $id = (int)($req->params['id'] ?? 0);
+            
+            // Lấy giá trị active từ form gửi lên (0 hoặc 1)
+            $newStatus = (int)$req->input('is_active'); 
+
+            if ($id > 0) {
+                try {
+                    // Cập nhật trong DB
+                    (new \App\Models\Tour())->update($id, ['is_active' => $newStatus]);
+                    
+                    $_SESSION['flash_success'] = "Đã thay đổi trạng thái Tour thành công.";
+                } catch (\Throwable $e) {
+                    $_SESSION['flash_error'] = "Lỗi: Không thể cập nhật trạng thái.";
+                }
+            }
+
+    // Quay lại trang danh sách
+    return $this->redirect(route('tour.index'));
+}
+
     // [POST] Xóa Tour
     public function delete(Request $req): Response
     {

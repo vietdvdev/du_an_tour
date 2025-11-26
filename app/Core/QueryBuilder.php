@@ -12,6 +12,7 @@ class QueryBuilder
     protected array $columns = ['*'];
     protected array $wheres = [];     // each: [type, sql, bindings[]]
     protected array $orders = [];     // each: [column, direction]
+    protected string $groupBy = '';   // <--- MỚI: Chuỗi GROUP BY
     protected ?int $limit = null;
     protected ?int $offset = null;
     protected array $joins = [];      // each: [type, table, first, operator, second]
@@ -27,6 +28,14 @@ class QueryBuilder
     {
         $this->table = $table;
         return $this;
+    }
+
+    /**
+     * Alias cho table(), giúp code đọc tự nhiên hơn khi query: ->from('booking')
+     */
+    public function from(string $table): self
+    {
+        return $this->table($table);
     }
 
     /* ---------- SELECT ---------- */
@@ -104,6 +113,19 @@ class QueryBuilder
             throw new InvalidArgumentException("Invalid operator: {$op}");
         }
         return [$op, $value];
+    }
+
+    /* ---------- GROUP BY ---------- */
+    
+    /**
+     * Thêm mệnh đề GROUP BY
+     */
+    public function groupBy(string ...$columns): self
+    {
+        // Quote từng cột để đảm bảo an toàn
+        $cols = array_map([$this, 'quoteIdent'], $columns);
+        $this->groupBy = ' GROUP BY ' . implode(', ', $cols);
+        return $this;
     }
 
     /* ---------- ORDER / LIMIT ---------- */
@@ -217,6 +239,11 @@ class QueryBuilder
 
         [$whereSql, $whereBindings] = $this->compileWhere();
         if ($whereSql) $sql .= " WHERE {$whereSql}";
+
+        // --- GROUP BY (Sau WHERE, trước ORDER BY) ---
+        if (!$isCount && $this->groupBy) {
+            $sql .= $this->groupBy;
+        }
 
         if (!$isCount && $this->orders) {
             $orderParts = array_map(fn($o) => $o[0] . ' ' . $o[1], $this->orders);

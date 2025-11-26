@@ -68,25 +68,15 @@
               <li class="nav-item">
                 <a href="<?= route('admin.index')?>" class="nav-link">
                   <i class="nav-icon far fa-user"></i>
-                  <p>Tài khoản quản trị</p>
+                  <p>Tài khoản Admin</p>
                 </a>
               </li>
-
-                  <li class="nav-item">
-                <a href="#" class="nav-link">
-                  <i class="nav-icon far fa-user"></i>
-                  <p>Tài khoản khách hàng</p>
-                </a>
-              </li>
-
                 <li class="nav-item">
                 <a href="#" class="nav-link">
                   <i class="nav-icon far fa-user"></i>
                   <p>Tài khoản cá nhân</p>
                 </a>
               </li>
-
-
             </ul>
           </li>
 
@@ -108,6 +98,22 @@
 
 
             </ul>
+                <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="<?= route('departure.index')?>" class="nav-link">
+                  <i class="nav-icon far fa-user"></i>
+                  <p>Lịch khởi hành tour</p>
+                </a>
+              </li>
+            </ul>
+                  <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="<?= route('booking.index')?>" class="nav-link">
+                  <i class="nav-icon far fa-user"></i>
+                  <p>Đặt Lịch tour</p>
+                </a>
+              </li>
+            </ul>
           </li>
 
         </ul>
@@ -116,3 +122,5 @@
     </div>
     <!-- /.sidebar -->
   </aside>
+
+  

@@ -5,6 +5,8 @@ use App\Controllers\UserController;
 use App\Controllers\DanhMucController;
 use App\Controllers\SupplierController;
 use App\Controllers\TourController;
+use App\Controllers\DepartureController;
+use App\Controllers\BookingController;
 use App\Middleware\CsrfMiddleware;
 use App\Middleware\ExampleMiddleware;
 
@@ -91,7 +93,8 @@ $router->get('/tour/edit/{id}', [TourController::class, 'edit'])->name('tour.edi
 // --- TAB 1: Thông tin chung ---
 // [POST] Cập nhật tên, mã, mô tả, danh mục
 $router->post('/tour/update/{id}', [TourController::class, 'update'])->name('tour.update');
-
+/* Toggle trạng thái Tour (Bật/Tắt) */
+$router->post('/tour/toggle-status/{id}', [TourController::class, 'toggleStatus'])->name('tour.toggle.status');
 // --- TAB 2: Lịch trình (Itinerary) ---
 // [POST] Cập nhật danh sách ngày, tiêu đề, nội dung (Xử lý mảng)
 $router->post('/tour/update/itinerary/{id}', [TourController::class, 'updateItinerary'])->name('tour.update.itinerary');
@@ -139,11 +142,37 @@ $router->post('/tour/policy/update/{id}', [TourController::class, 'updatePolicy'
 /* 2. Thêm Nhà cung cấp vào Tour */
 // Tương ứng View: route('tour.supplier.add', ['id' => $tourId])
 $router->post('/tour/supplier/add/{id}', [TourController::class, 'addSupplier'])->name('tour.supplier.add');
-
 /* 3. Xóa Nhà cung cấp khỏi Tour */
 // Tương ứng View: route('tour.supplier.delete', ['id' => $tourId])
 $router->post('/tour/supplier/delete/{id}', [TourController::class, 'deleteSupplier'])->name('tour.supplier.delete');
 
+
+// 1. Danh sách & Theo dõi chỗ trống (Monitor)
+$router->get('/departure', [DepartureController::class, 'index'])->name('departure.index');
+
+// 2. Tạo đợt mới
+$router->get('/departure/create', [DepartureController::class, 'create'])->name('departure.create');
+$router->post('/departure/store', [DepartureController::class, 'store'])->name('departure.store');
+
+// 3. Cập nhật thông tin
+$router->get('/departure/edit/{id}', [DepartureController::class, 'edit'])->name('departure.edit');
+$router->post('/departure/update/{id}', [DepartureController::class, 'update'])->name('departure.update');
+
+// 4. Xóa (Nếu cần)
+$router->post('/departure/delete/{id}', [DepartureController::class, 'delete'])->name('departure.delete');
+
+
+// 1. Danh sách Booking
+$router->get('/booking', [BookingController::class, 'index'])->name('booking.index');
+
+// 2. Tạo Booking mới (Form + Xử lý)
+$router->get('/booking/create', [BookingController::class, 'create'])->name('booking.create');
+$router->post('/booking/store', [BookingController::class, 'store'])->name('booking.store');
+
+// 3. Chi tiết & Cập nhật trạng thái
+$router->get('/booking/show/{id}', [BookingController::class, 'show'])->name('booking.show');
+/* --- BỔ SUNG ROUTER HỦY BOOKING --- */
+$router->post('/booking/cancel/{id}', [App\Controllers\BookingController::class, 'cancel'])->name('booking.cancel');
 // // Group with prefix + middleware
 // $router->group(['prefix'=>'/users', 'middleware'=>[ExampleMiddleware::class]], function(Router $r){
 //     $r->get('', [UserController::class, 'index']);

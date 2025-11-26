@@ -16,7 +16,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Giả định biến chứa dữ liệu là $ListTour
-$ListTour = $ListTour ?? []; 
+$ListTour = $ListTour ?? [];
 
 // Hàm hỗ trợ hiển thị trạng thái
 function getTourStateLabel(string $state): string
@@ -55,12 +55,14 @@ function getTourStateLabel(string $state): string
             <!-- Flash Messages -->
             <?php if (!empty($_SESSION['flash_success'])): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <?= htmlspecialchars($_SESSION['flash_success']); unset($_SESSION['flash_success']); ?>
+                    <?= htmlspecialchars($_SESSION['flash_success']);
+                    unset($_SESSION['flash_success']); ?>
                 </div>
             <?php endif; ?>
             <?php if (!empty($_SESSION['flash_error'])): ?>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <?= htmlspecialchars($_SESSION['flash_error']); unset($_SESSION['flash_error']); ?>
+                    <?= htmlspecialchars($_SESSION['flash_error']);
+                    unset($_SESSION['flash_error']); ?>
                 </div>
             <?php endif; ?>
 
@@ -84,7 +86,7 @@ function getTourStateLabel(string $state): string
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($ListTour as $index => $tour): 
+                            <?php foreach ($ListTour as $index => $tour):
                                 $id = (int)($tour['id'] ?? 0);
                                 $isActive = (int)($tour['is_active'] ?? 1);
                             ?>
@@ -92,51 +94,54 @@ function getTourStateLabel(string $state): string
                                     <td><?= htmlspecialchars($id) ?></td>
                                     <td><?= htmlspecialchars($tour['code'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($tour['name'] ?? '') ?></td>
-                                    <!-- Cần join hoặc lookup category name -->
-                                    <td><?= htmlspecialchars($tour['category_name'] ?? 'N/A') ?></td> 
+                                    <td><?= htmlspecialchars($tour['category_name'] ?? 'N/A') ?></td>
                                     <td class="text-center"><?= getTourStateLabel($tour['state'] ?? 'DRAFT') ?></td>
-                                    
-                                    <!-- Trạng thái Hiển thị (is_active) -->
-                                    <td class="text-center">
-                                        <span class="badge <?= $isActive ? 'bg-success' : 'bg-secondary' ?>">
-                                            <?= $isActive ? 'Bật' : 'Tắt' ?>
-                                        </span>
+
+                                    <td class="text-center align-middle">
+                                        <form action="<?= route('tour.toggle.status', ['id' => $id]) ?>" method="POST" style="display:inline-block">
+
+                                            <input type="hidden" name="is_active" value="<?= $isActive ? 0 : 1 ?>">
+
+                                            <button type="submit"
+                                                class="btn btn-sm font-weight-bold <?= $isActive ? 'btn-outline-success' : 'btn-outline-secondary' ?>"
+                                                title="<?= $isActive ? 'Đang bật. Nhấn để Tắt' : 'Đang tắt. Nhấn để Bật' ?>"
+                                                style="min-width: 80px;">
+
+                                                <i class="fas <?= $isActive ? 'fa-toggle-on' : 'fa-toggle-off' ?> mr-1"></i>
+                                                <?= $isActive ? 'Bật' : 'Tắt' ?>
+
+                                            </button>
+                                        </form>
                                     </td>
-                                    
-                                    <!-- CỘT HÀNH ĐỘNG -->
-                                    <!-- CỘT HÀNH ĐỘNG -->
+
                                     <td class="text-center align-middle">
                                         <div class="d-flex justify-content-center" style="gap: 5px;">
-                                            
-                                            <!-- Nút XEM CHI TIẾT (Mới) -->
+
                                             <a href="<?= htmlspecialchars(route('tour.show', ['id' => $id])) ?>"
                                                 class="btn btn-sm btn-info" title="Xem Chi Tiết">
-                                                <i class="bi bi-info-circle"></i> Chi Tiết
-                                            </a>
-                                            
-                                            <!-- Nút Sửa/Cấu hình chi tiết -->
-                                            <a href="<?= htmlspecialchars(route('tour.edit', ['id' => $id])) ?>"
-                                                class="btn btn-sm btn-primary" title="Cấu hình">
-                                                <i class="bi bi-gear"></i> Cấu hình
+                                                <i class="fas fa-eye"></i>
                                             </a>
 
-                                            <!-- Nút Xóa (Kích hoạt Form POST ẩn) -->
+                                            <a href="<?= htmlspecialchars(route('tour.edit', ['id' => $id])) ?>"
+                                                class="btn btn-sm btn-primary" title="Cấu hình">
+                                                <i class="fas fa-cog"></i>
+                                            </a>
+
                                             <a href="javascript:void(0)"
                                                 onclick="confirmDelete(<?= $id ?>, '<?= htmlspecialchars($tour['name'] ?? '') ?>')"
                                                 class="btn btn-sm btn-danger" title="Xóa">
-                                                <i class="bi bi-trash"></i> Xóa
+                                                <i class="fas fa-trash"></i>
                                             </a>
-                                            
-                                            <!-- FORM POST ẨN ĐỂ GỌI HÀM DELETE -->
+
                                             <form id="delete-form-<?= $id ?>" method="POST"
-                                                  action="<?= route('tour.delete', ['id' => $id]) ?>"
-                                                  style="display:none;"></form>
+                                                action="<?= route('tour.delete', ['id' => $id]) ?>"
+                                                style="display:none;"></form>
                                         </div>
                                     </td>
                                 </tr>
-                                </tr>
                             <?php endforeach; ?>
-                             <?php if (empty($ListTour)): ?>
+
+                            <?php if (empty($ListTour)): ?>
                                 <tr>
                                     <td colspan="7" class="text-center">Không tìm thấy Tour nào.</td>
                                 </tr>
@@ -160,7 +165,7 @@ function getTourStateLabel(string $state): string
 
 <!-- Page specific script -->
 <script>
-    $(function () {
+    $(function() {
         // Khởi tạo DataTables
         if ($.fn.DataTable.isDataTable('#tourTable')) {
             $('#tourTable').DataTable().destroy();
@@ -171,10 +176,17 @@ function getTourStateLabel(string $state): string
             lengthChange: true,
             pageLength: 25,
             autoWidth: false,
-            order: [[1, 'asc']], 
-            columnDefs: [
-                { orderable: false, targets: [0, 4, 5, 6] }, // Cột ID, Trạng thái, Hành động
-                { searchable: false, targets: [0, 4, 5, 6] }
+            order: [
+                [1, 'asc']
+            ],
+            columnDefs: [{
+                    orderable: false,
+                    targets: [0, 4, 5, 6]
+                }, // Cột ID, Trạng thái, Hành động
+                {
+                    searchable: false,
+                    targets: [0, 4, 5, 6]
+                }
             ],
             language: {
                 url: "//cdn.datatables.net/plug-ins/1.13.6/i18n/vi.json"
