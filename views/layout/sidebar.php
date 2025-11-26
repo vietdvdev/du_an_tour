@@ -27,10 +27,10 @@
 
           <li class="nav-item">
             <a href="#" class="nav-link">
-           <i class="nav-icon fas fa-tachometer-alt"></i>
+              <i class="nav-icon fas fa-tachometer-alt"></i>
               <p>
-                Trang chủ 
-       
+                Trang chủ
+
               </p>
             </a>
           </li>
@@ -41,17 +41,17 @@
             <a href="<?= route('danhMuc.index') ?>" class="nav-link">
               <i class="nav-icon fas fa-th"></i>
               <p>
-                Danh mục 
-           
+                Danh mục
+
               </p>
             </a>
           </li>
 
-            <li class="nav-item">
+          <li class="nav-item">
             <a href="<?= route('supplier.index') ?>" class="nav-link">
               <i class="nav-icon fas fa-th"></i>
               <p>
-               Nhà cung câp dịch vụ           
+                Nhà cung câp dịch vụ
               </p>
             </a>
           </li>
@@ -66,12 +66,12 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="<?= route('admin.index')?>" class="nav-link">
+                <a href="<?= route('admin.index') ?>" class="nav-link">
                   <i class="nav-icon far fa-user"></i>
                   <p>Tài khoản Admin</p>
                 </a>
               </li>
-                <li class="nav-item">
+              <li class="nav-item">
                 <a href="#" class="nav-link">
                   <i class="nav-icon far fa-user"></i>
                   <p>Tài khoản cá nhân</p>
@@ -80,7 +80,7 @@
             </ul>
           </li>
 
-              <li class="nav-item has-treeview">
+          <li class="nav-item has-treeview">
             <a href="#" class="nav-link">
               <i class="nav-icon fas fa-user"></i>
               <p>
@@ -90,7 +90,7 @@
             </a>
             <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="<?= route('tour.index')?>" class="nav-link">
+                <a href="<?= route('tour.index') ?>" class="nav-link">
                   <i class="nav-icon far fa-user"></i>
                   <p>Danh Sách Tour</p>
                 </a>
@@ -98,22 +98,42 @@
 
 
             </ul>
-                <ul class="nav nav-treeview">
+            <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="<?= route('departure.index')?>" class="nav-link">
+                <a href="<?= route('departure.index') ?>" class="nav-link">
                   <i class="nav-icon far fa-user"></i>
                   <p>Lịch khởi hành tour</p>
                 </a>
               </li>
             </ul>
-                  <ul class="nav nav-treeview">
+            <ul class="nav nav-treeview">
               <li class="nav-item">
-                <a href="<?= route('booking.index')?>" class="nav-link">
+                <a href="<?= route('booking.index') ?>" class="nav-link">
                   <i class="nav-icon far fa-user"></i>
                   <p>Đặt Lịch tour</p>
                 </a>
               </li>
             </ul>
+
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="<?= route('payment.index') ?>" class="nav-link">
+                  <i class="nav-icon far fa-user"></i>
+                  <p>Quản lý Thanh toán</p>
+                </a>
+              </li>
+            </ul>
+
+
+            <ul class="nav nav-treeview">
+              <li class="nav-item">
+                <a href="<?= route('assignment.index') ?>" class="nav-link">
+                  <i class="nav-icon far fa-user"></i>
+                  <p>Phân công Hướng dẫn viên</p>
+                </a>
+              </li>
+            </ul>            
+
           </li>
 
         </ul>
@@ -122,5 +142,3 @@
     </div>
     <!-- /.sidebar -->
   </aside>
-
-  

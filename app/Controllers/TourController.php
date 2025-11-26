@@ -370,79 +370,96 @@ class TourController extends BaseController
     // =========================================================================
 
     // [POST] Cập nhật Giá Tour
-    public function updatePrice(Request $req): Response
-    {
-        $tourId = (int)($req->params['id'] ?? 0);
-        if ($tourId <= 0) return $this->redirect(route('tour.index'));
+// [POST] Cập nhật Giá Tour
+public function updatePrice(Request $req): Response
+{
+    $tourId = (int)($req->params['id'] ?? 0);
+    if ($tourId <= 0) return $this->redirect(route('tour.index'));
 
-        $rawPrices = $req->input('prices');
-        $prices = is_array($rawPrices) ? $rawPrices : [];
+    $rawPrices = $req->input('prices');
+    $prices = is_array($rawPrices) ? $rawPrices : [];
 
-        // Validate cơ bản
-        foreach ($prices as $index => $p) {
-            if ($p['base_price'] < 0) {
-                $_SESSION['flash_error'] = "Giá tiền không hợp lệ ở dòng " . ($index + 1);
-                return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
-            }
-            if (strtotime($p['effective_from']) > strtotime($p['effective_to'])) {
-                $_SESSION['flash_error'] = "Ngày kết thúc phải lớn hơn ngày bắt đầu (Dòng " . ($index + 1) . ")";
-                return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
-            }
+    // 1. Lọc và Validate dữ liệu cơ bản
+    $validPrices = [];
+    foreach ($prices as $index => $p) {
+        // Bỏ qua các dòng dữ liệu rác/thiếu thông tin quan trọng
+        if (empty($p['pax_type']) || empty($p['effective_from']) || empty($p['effective_to'])) {
+            continue; 
         }
 
-        // Validate overlap (trùng lặp thời gian)
-        $count = count($prices);
-        for ($i = 0; $i < $count; $i++) {
-            for ($j = $i + 1; $j < $count; $j++) {
-                if ($prices[$i]['pax_type'] === $prices[$j]['pax_type']) {
-                    if (
-                        $prices[$i]['effective_from'] <= $prices[$j]['effective_to'] &&
-                        $prices[$i]['effective_to'] >= $prices[$j]['effective_from']
-                    ) {
-                        $_SESSION['flash_error'] = "Khoảng thời gian bị trùng lặp cho loại khách " . $prices[$i]['pax_type'];
-                        return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
-                    }
-                }
-            }
+        // Validate Logic
+        $basePrice = (float)($p['base_price'] ?? 0);
+        if ($basePrice < 0) {
+            $_SESSION['flash_error'] = "Giá tiền không được âm (Dòng " . ($index + 1) . ")";
+            return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
         }
 
-        try {
-            $priceModel = new TourPrice();
-            $existingRecords = $priceModel->where('tour_id', $tourId);
-            $existingIds = array_column($existingRecords, 'id');
-            $submittedIds = [];
-
-            foreach ($prices as $p) {
-                $id = (int)($p['id'] ?? 0);
-                $saveData = [
-                    'tour_id'        => $tourId,
-                    'pax_type'       => $p['pax_type'],
-                    'base_price'     => $p['base_price'],
-                    'effective_from' => $p['effective_from'],
-                    'effective_to'   => $p['effective_to']
-                ];
-
-                if ($id > 0 && in_array($id, $existingIds)) {
-                    $priceModel->update($id, $saveData);
-                    $submittedIds[] = $id;
-                } else {
-                    $priceModel->create($saveData);
-                }
-            }
-
-            // Xóa các giá đã bị remove khỏi form UI
-            $idsToDelete = array_diff($existingIds, $submittedIds);
-            foreach ($idsToDelete as $delId) {
-                $priceModel->delete($delId);
-            }
-
-            $_SESSION['flash_success'] = "Cập nhật bảng giá thành công.";
-        } catch (\Throwable $e) {
-            error_log("[Price] " . $e->getMessage());
-            $_SESSION['flash_error'] = "Lỗi hệ thống khi lưu giá.";
+        if (strtotime($p['effective_from']) > strtotime($p['effective_to'])) {
+            $_SESSION['flash_error'] = "Ngày kết thúc phải lớn hơn ngày bắt đầu (Dòng " . ($index + 1) . ")";
+            return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
         }
-        return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
+
+        $validPrices[] = $p;
     }
+
+    // 2. Kiểm tra trùng lặp khoảng thời gian (Overlap Check)
+    $count = count($validPrices);
+    for ($i = 0; $i < $count; $i++) {
+        for ($j = $i + 1; $j < $count; $j++) {
+            // So sánh cùng loại khách
+            if ($validPrices[$i]['pax_type'] === $validPrices[$j]['pax_type']) {
+                // Logic giao nhau: StartA <= EndB AND EndA >= StartB
+                if ($validPrices[$i]['effective_from'] <= $validPrices[$j]['effective_to'] &&
+                    $validPrices[$i]['effective_to'] >= $validPrices[$j]['effective_from']
+                ) {
+                    $_SESSION['flash_error'] = "Khoảng thời gian bị trùng lặp cho loại khách: " . $validPrices[$i]['pax_type'];
+                    return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
+                }
+            }
+        }
+    }
+
+    // 3. Lưu vào DB
+    try {
+        $priceModel = new TourPrice();
+        // Lấy danh sách ID cũ để so sánh xóa
+        $existingRecords = $priceModel->where('tour_id', $tourId);
+        $existingIds = array_column($existingRecords, 'id');
+        $submittedIds = [];
+
+        foreach ($validPrices as $p) {
+            $id = (int)($p['id'] ?? 0);
+            $saveData = [
+                'tour_id'        => $tourId,
+                'pax_type'       => $p['pax_type'],
+                'base_price'     => (float)($p['base_price'] ?? 0),
+                'effective_from' => $p['effective_from'],
+                'effective_to'   => $p['effective_to']
+            ];
+
+            if ($id > 0 && in_array($id, $existingIds)) {
+                $priceModel->update($id, $saveData);
+                $submittedIds[] = $id;
+            } else {
+                $newId = $priceModel->create($saveData);
+                if ($id > 0) $submittedIds[] = $id; // Giữ lại nếu update, create mới thì không cần track ID cũ
+            }
+        }
+
+        // Xóa các giá đã bị remove khỏi giao diện
+        $idsToDelete = array_diff($existingIds, $submittedIds);
+        foreach ($idsToDelete as $delId) {
+            $priceModel->delete($delId);
+        }
+
+        $_SESSION['flash_success'] = "Cập nhật bảng giá thành công.";
+    } catch (\Throwable $e) {
+        error_log("[Price Error] " . $e->getMessage());
+        $_SESSION['flash_error'] = "Lỗi hệ thống khi lưu giá: " . $e->getMessage();
+    }
+
+    return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
+}
 
     // =========================================================================
     // XỬ LÝ ẢNH & CÔNG BỐ (IMAGES & PUBLISH)

@@ -7,6 +7,8 @@ use App\Controllers\SupplierController;
 use App\Controllers\TourController;
 use App\Controllers\DepartureController;
 use App\Controllers\BookingController;
+use App\Controllers\PaymentController;
+use App\Controllers\AssignmentController;
 use App\Middleware\CsrfMiddleware;
 use App\Middleware\ExampleMiddleware;
 
@@ -173,6 +175,32 @@ $router->post('/booking/store', [BookingController::class, 'store'])->name('book
 $router->get('/booking/show/{id}', [BookingController::class, 'show'])->name('booking.show');
 /* --- BỔ SUNG ROUTER HỦY BOOKING --- */
 $router->post('/booking/cancel/{id}', [App\Controllers\BookingController::class, 'cancel'])->name('booking.cancel');
+
+//  --- ĐIỀU HÀNH & PHÂN CÔNG --- */
+// Danh sách lịch khởi hành cần phân công
+$router->get('/assignment', [AssignmentController::class, 'index'])->name('assignment.index');
+
+// Xử lý phân công (Gán HDV)
+$router->post('/assignment/store', [AssignmentController::class, 'store'])->name('assignment.store');
+
+// Hủy phân công
+$router->post('/assignment/delete', [AssignmentController::class, 'delete'])->name('assignment.delete');
+
+/* --- TÀI CHÍNH & KẾ TOÁN --- */
+// Danh sách tất cả phiếu thu (Sổ quỹ)
+$router->get('/payment', [PaymentController::class, 'index'])->name('payment.index');
+
+// Form tạo phiếu thu (Độc lập, chọn booking từ select box)
+$router->get('/payment/create', [PaymentController::class, 'create'])->name('payment.create');
+$router->post('/payment/store', [PaymentController::class, 'store'])->name('payment.store');
+
+// // 1. Quản lý Dịch vụ (Services)
+// $router->post('/booking/service/add/{id}', [BookingFinanceController::class, 'addService'])->name('booking.service.add');
+// $router->post('/booking/service/delete/{id}', [BookingFinanceController::class, 'deleteService'])->name('booking.service.delete');
+
+// // 2. Quản lý Thanh toán (Payments)
+// $router->post('/booking/payment/add/{id}', [BookingFinanceController::class, 'addPayment'])->name('booking.payment.add');
+// $router->post('/booking/payment/delete/{id}', [BookingFinanceController::class, 'deletePayment'])->name('booking.payment.delete');
 // // Group with prefix + middleware
 // $router->group(['prefix'=>'/users', 'middleware'=>[ExampleMiddleware::class]], function(Router $r){
 //     $r->get('', [UserController::class, 'index']);
