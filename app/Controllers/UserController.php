@@ -16,6 +16,7 @@ class UserController extends BaseController
     // --- 1. DANH SÁCH ADMIN (Role=1) ---
     public function indexAdmin()
     {
+      
         // Lấy list admin
         $ListUsers = (new User())->where('role', 0);
 
@@ -29,6 +30,7 @@ class UserController extends BaseController
     // --- 2. DANH SÁCH HƯỚNG DẪN VIÊN (Role=0) ---
     public function indexGuide()
     {
+        
         // Lấy list HDV
         $ListUsers = (new User())->where('role', 1);
 

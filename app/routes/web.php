@@ -1,6 +1,6 @@
 <?php
-
 use App\Core\Router;
+use App\Core\Request;
 use App\Controllers\HomeController;
 use App\Controllers\AuthController;
 use App\Controllers\UserController;
@@ -12,9 +12,12 @@ use App\Controllers\BookingController;
 use App\Controllers\PaymentController;
 use App\Controllers\AssignmentController;
 use App\Controllers\BookingFinanceController;
+use App\Controllers\GuideController;
+
+// Import Middleware
 use App\Middleware\AuthMiddleware;
 use App\Middleware\AdminMiddleware;
-use App\Middleware\GuideMiddleware; // Nếu có dùng cho HDV
+use App\Middleware\GuideMiddleware;
 
 /** @var Router $router */
 
@@ -31,29 +34,16 @@ $router->post('/login', [AuthController::class, 'login'])->name('login.post');
 $router->get('/logout', [AuthController::class, 'logout'])->name('logout');
 
 
-// ==============================================================================
-// 2. PROTECTED ROUTES (YÊU CẦU ĐĂNG NHẬP)
-// ==============================================================================
-
-// Nhóm chung cho tất cả user đã đăng nhập (Admin + HDV + User thường)
-// Nếu bạn muốn route nào đó chỉ cần login là vào được thì đặt ở đây
-/*
-$router->group(['middleware' => [AuthMiddleware::class]], function (Router $r) {
-    // Ví dụ: Đổi mật khẩu, Xem profile cá nhân
-    // $r->get('/profile', [UserController::class, 'profile'])->name('profile');
-});
-*/
 
 
 // ==============================================================================
-// 3. ADMIN ROUTES (YÊU CẦU ĐĂNG NHẬP + QUYỀN ADMIN)
+// 2. NHÓM ADMIN (YÊU CẦU ĐĂNG NHẬP + QUYỀN ADMIN)
 // ==============================================================================
-
 $router->group(['middleware' => [AuthMiddleware::class, AdminMiddleware::class]], function (Router $r) {
 
     // --- QUẢN LÝ TÀI KHOẢN (USER & HDV) ---
     $r->get('/list-admin', [UserController::class, 'indexAdmin'])->name('admin.index');
-    $r->get('/list-guide', [UserController::class, 'indexGuide'])->name('guide.index');
+    $r->get('/list-guide', [UserController::class, 'indexGuide'])->name('admin.guide.index');
     
     $r->get('/admin/create', [UserController::class, 'create'])->name('admin.create');
     $r->post('/admin/store', [UserController::class, 'store'])->name('admin.store');
@@ -91,7 +81,6 @@ $router->group(['middleware' => [AuthMiddleware::class, AdminMiddleware::class]]
 
     // --- QUẢN LÝ TOUR (SẢN PHẨM) ---
     $r->get('/tour', [TourController::class, 'index'])->name('tour.index');
-    // Xem chi tiết tour (có thể cho HDV xem, nhưng ở đây đặt trong Admin trước)
     $r->get('/tour/show/{id}', [TourController::class, 'show'])->name('tour.show');
     
     // Tạo & Sửa Tour
@@ -105,16 +94,15 @@ $router->group(['middleware' => [AuthMiddleware::class, AdminMiddleware::class]]
     $r->post('/tour/publish/{id}', [TourController::class, 'publish'])->name('tour.publish');
     $r->post('/tour/delete/{id}', [TourController::class, 'delete'])->name('tour.delete');
 
-    // Các thành phần con của Tour (Lịch trình, Giá, Chính sách, Ảnh, NCC)
+    // Các thành phần con của Tour
     $r->post('/tour/update/itinerary/{id}', [TourController::class, 'updateItinerary'])->name('tour.update.itinerary');
     $r->post('/tour/itinerary/delete-item/{id}', [TourController::class, 'deleteItineraryItem'])->name('tour.itinerary.delete_item');
-    
     $r->post('/tour/update/price/{id}', [TourController::class, 'updatePrice'])->name('tour.update.price');
     $r->post('/tour/update/policy/{id}', [TourController::class, 'updatePolicy'])->name('tour.update.policy');
-    $r->post('/tour/policy/update/{id}', [TourController::class, 'updatePolicy'])->name('tour.update.policy'); // Duplicate logic cũ
+    // Bỏ dòng trùng lặp '/tour/policy/update/{id}' vì đã có '/tour/update/policy/{id}' ở trên (hoặc giữ lại nếu view dùng url khác)
+    $r->post('/tour/policy/update/{id}', [TourController::class, 'updatePolicy'])->name('tour.update.policy.alt'); 
     
     $r->post('/tour/update/images/{id}', [TourController::class, 'updateImages'])->name('tour.update.images');
-    
     $r->post('/tour/update/suppliers/{id}', [TourController::class, 'updateSuppliers'])->name('tour.update.suppliers');
     $r->post('/tour/supplier/add/{id}', [TourController::class, 'addSupplier'])->name('tour.supplier.add');
     $r->post('/tour/supplier/delete/{id}', [TourController::class, 'deleteSupplier'])->name('tour.supplier.delete');
@@ -122,7 +110,6 @@ $router->group(['middleware' => [AuthMiddleware::class, AdminMiddleware::class]]
 
     // --- QUẢN LÝ LỊCH KHỞI HÀNH (DEPARTURE) ---
     $r->get('/departure', [DepartureController::class, 'index'])->name('departure.index');
-    
     $r->get('/departure/create', [DepartureController::class, 'create'])->name('departure.create');
     $r->post('/departure/store', [DepartureController::class, 'store'])->name('departure.store');
     
@@ -133,7 +120,6 @@ $router->group(['middleware' => [AuthMiddleware::class, AdminMiddleware::class]]
 
     // --- QUẢN LÝ BOOKING (ĐẶT TOUR) ---
     $r->get('/booking', [BookingController::class, 'index'])->name('booking.index');
-    
     $r->get('/booking/create', [BookingController::class, 'create'])->name('booking.create');
     $r->post('/booking/store', [BookingController::class, 'store'])->name('booking.store');
     
@@ -141,7 +127,7 @@ $router->group(['middleware' => [AuthMiddleware::class, AdminMiddleware::class]]
     $r->post('/booking/cancel/{id}', [BookingController::class, 'cancel'])->name('booking.cancel');
     $r->post('/booking/update-status/{id}', [BookingController::class, 'updateStatus'])->name('booking.update.status');
 
-    // Tài chính Booking (Dịch vụ & Thanh toán con)
+    // Tài chính Booking
     $r->post('/booking/service/add/{id}', [BookingFinanceController::class, 'addService'])->name('booking.service.add');
     $r->post('/booking/service/delete/{id}', [BookingFinanceController::class, 'deleteService'])->name('booking.service.delete');
     
@@ -160,17 +146,16 @@ $router->group(['middleware' => [AuthMiddleware::class, AdminMiddleware::class]]
     $r->get('/payment/create', [PaymentController::class, 'create'])->name('payment.create');
     $r->post('/payment/store', [PaymentController::class, 'store'])->name('payment.store');
 
-});
+}); // <--- ĐÓNG NHÓM ADMIN (QUAN TRỌNG)
+
 
 // ==============================================================================
-// 4. GUIDE ROUTES (YÊU CẦU ĐĂNG NHẬP + QUYỀN HƯỚNG DẪN VIÊN)
+// 3. NHÓM HƯỚNG DẪN VIÊN (YÊU CẦU ĐĂNG NHẬP + QUYỀN HDV)
 // ==============================================================================
-// Nếu bạn có trang dành riêng cho HDV xem lịch, điểm danh, xem danh sách khách...
-// Bạn có thể mở nhóm này ra và thêm route vào.
-
-/*
 $router->group(['middleware' => [AuthMiddleware::class, GuideMiddleware::class]], function (Router $r) {
-    // $r->get('/guide/dashboard', [GuideController::class, 'dashboard']);
-    // $r->get('/guide/my-tours', [GuideController::class, 'myTours']);
+    
+    // Dashboard dành riêng cho HDV
+    $r->get('/guide/dashboard', [GuideController::class, 'index'])->name('guide.index');
+
+    // Các route khác của HDV...
 });
-*/
