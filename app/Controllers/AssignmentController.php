@@ -5,7 +5,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Models\Assignment;
 use App\Models\Departure;
-use App\Models\User; // Giả sử bạn có model User
+use App\Models\User; 
 
 class AssignmentController extends BaseController
 {
@@ -18,8 +18,8 @@ class AssignmentController extends BaseController
 
         // 2. Lấy danh sách Hướng dẫn viên (Role = HDV hoặc GUIDE)
         // Tùy vào dữ liệu trong bảng users của bạn
-        $guides = (new \App\Models\User())->builder() // Dùng builder nếu chưa có Model User hoàn chỉnh
-            ->where('role', 'HDV') // Hoặc 'GUIDE' tùy DB
+        $guides = (new User())->builder() // Dùng builder nếu chưa có Model User hoàn chỉnh
+            ->where('role', '1') // Hoặc 'GUIDE' tùy DB
             ->where('is_active', 1)
             ->get();
 
@@ -62,11 +62,13 @@ class AssignmentController extends BaseController
 
         $model = new Assignment();
 
-        // 1. Check trùng lịch của HDV này
-        // if ($model->checkOverlap($guideId, $dep['start_date'], $dep['end_date'])) {
-        //     $_SESSION['flash_error'] = "HDV này đã có lịch đi tour khác trong khoảng thời gian này!";
-        //     return $this->redirect(route('assignment.index'));
-        // }
+        // 1. Check trùng lịch của HDV này (ĐÃ UNCOMMENT ĐỂ KÍCH HOẠT)
+        if ($model->checkOverlap($guideId, $dep['start_date'], $dep['end_date'])) {
+             // Có thể query thêm để biết trùng với tour nào nếu cần chi tiết hơn
+             $_SESSION['flash_error'] = "HDV này đã có lịch đi tour khác trong khoảng thời gian này (" . 
+                date('d/m', strtotime($dep['start_date'])) . " - " . date('d/m', strtotime($dep['end_date'])) . ")!";
+             return $this->redirect(route('assignment.index'));
+        }
 
         // 2. Check đã gán vào tour này chưa
         $exists = $model->builder()

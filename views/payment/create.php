@@ -74,8 +74,6 @@
                                             <select name="method" class="form-control">
                                                 <option value="CASH">Tiền mặt</option>
                                                 <option value="TRANSFER" selected>Chuyển khoản ngân hàng</option>
-                                                <option value="CARD">Thẻ tín dụng / POS</option>
-                                                <option value="QR">Cổng thanh toán QR</option>
                                             </select>
                                         </div>
                                     </div>

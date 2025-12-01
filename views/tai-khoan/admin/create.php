@@ -1,14 +1,7 @@
-<!-- Phần header -->
 <?php include __DIR__ . '/../../layout/header.php'; ?>
-
-<!-- Phần Navbar -->
 <?php include __DIR__ . '/../../layout/navbar.php'; ?>
-<!-- Phần Navbar -->
 <?php include __DIR__ . '/../../layout/sidebar.php'; ?>
 
-<!-- Phần nỗi dung -->
-
-<!-- Phần nỗi dung -->
 <?php
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -20,7 +13,7 @@ if ($flashSuccess) {
     unset($_SESSION['flash_success']);
 }
 
-// Lấy errors/old từ session (nếu bạn từng lưu chúng vào session)
+// Lấy errors/old từ session
 $sessionErrors = $_SESSION['errors'] ?? null;
 if ($sessionErrors) {
     unset($_SESSION['errors']);
@@ -31,30 +24,36 @@ if ($sessionOld) {
     unset($_SESSION['old']);
 }
 
-// Nếu controller truyền $errors/$old bằng render(), dùng nó; nếu không, fallback vào session.
+// Ưu tiên dữ liệu từ controller truyền xuống, nếu không có thì lấy từ session
 $errors = isset($errors) ? $errors : ($sessionErrors ?? []);
 $old    = isset($old)    ? $old    : ($sessionOld    ?? []);
 ?>
-<!-- Content Wrapper. Contains page content -->
+
+<!-- Content Wrapper -->
 <div class="content-wrapper">
-    <!-- Content Header (Page header) -->
+    <!-- Page Header -->
     <section class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <h1>Quản lý tài khoản quản trị viên</h1>
+                    <h1>Thêm mới tài khoản</h1>
+                </div>
+                <div class="col-sm-6 text-right">
+                    <a href="<?= route('admin.index') ?>" class="btn btn-default">
+                        <i class="fas fa-arrow-left"></i> Quay lại danh sách
+                    </a>
                 </div>
             </div>
-        </div><!-- /.container-fluid -->
+        </div>
     </section>
 
-    <!-- Main content -->
+    <!-- Main Content -->
     <section class="content">
         <div class="container-fluid">
             <div class="row">
                 <div class="col-12">
 
-                    <!-- Flash success -->
+                    <!-- Flash Success -->
                     <?php if (!empty($flashSuccess)): ?>
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             <?= htmlspecialchars($flashSuccess) ?>
@@ -64,134 +63,142 @@ $old    = isset($old)    ? $old    : ($sessionOld    ?? []);
                         </div>
                     <?php endif; ?>
 
-                    <!-- General error (nếu controller trả render với 'general') -->
+                    <!-- General Error -->
                     <?php if (!empty($errors['general'])): ?>
                         <div class="alert alert-danger">
                             <?= htmlspecialchars($errors['general'][0]) ?>
                         </div>
                     <?php endif; ?>
 
-                    <form action="<?= route('admin.store') ?>" method="POST" novalidate>
-
-                        <!-- USERNAME -->
-                        <div class="form-group">
-                            <label for="username">Tên đăng nhập</label>
-                            <input type="text"
-                                class="form-control <?= !empty($errors['username']) ? 'is-invalid' : '' ?>"
-                                id="username"
-                                name="username"
-                                value="<?= htmlspecialchars($old['username'] ?? '') ?>">
-                            <?php if (!empty($errors['username'])): ?>
-                                <div class="invalid-feedback">
-                                    <?= htmlspecialchars($errors['username'][0]) ?>
-                                </div>
-                            <?php endif; ?>
+                    <!-- FORM -->
+                    <div class="card card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title">Thông tin người dùng</h3>
                         </div>
+                        
+                        <form action="<?= route('admin.store') ?>" method="POST" novalidate>
+                            <div class="card-body">
 
-                        <!-- PASSWORD -->
-                        <div class="form-group">
-                            <label for="password">Mật khẩu</label>
-                            <input type="password"
-                                class="form-control <?= !empty($errors['password']) ? 'is-invalid' : '' ?>"
-                                id="password"
-                                name="password">
-                            <?php if (!empty($errors['password'])): ?>
-                                <div class="invalid-feedback">
-                                    <?= htmlspecialchars($errors['password'][0]) ?>
+                                <!-- USERNAME -->
+                                <div class="form-group">
+                                    <label for="username">Tên đăng nhập <span class="text-danger">*</span></label>
+                                    <input type="text"
+                                        class="form-control <?= !empty($errors['username']) ? 'is-invalid' : '' ?>"
+                                        id="username"
+                                        name="username"
+                                        placeholder="Nhập tên đăng nhập..."
+                                        value="<?= htmlspecialchars($old['username'] ?? '') ?>">
+                                    <?php if (!empty($errors['username'])): ?>
+                                        <div class="invalid-feedback">
+                                            <?= htmlspecialchars($errors['username'][0]) ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
-                            <?php endif; ?>
-                        </div>
 
-                        <!-- PASSWORD CONFIRMATION -->
-                        <div class="form-group">
-                            <label for="password_confirmation">Xác nhận mật khẩu</label>
-                            <input type="password"
-                                class="form-control <?= !empty($errors['password_confirmation']) ? 'is-invalid' : '' ?>"
-                                id="password_confirmation"
-                                name="password_confirmation">
-                            <?php if (!empty($errors['password_confirmation'])): ?>
-                                <div class="invalid-feedback">
-                                    <?= htmlspecialchars($errors['password_confirmation'][0]) ?>
+                                <!-- PASSWORD -->
+                                <div class="form-group">
+                                    <label for="password">Mật khẩu <span class="text-danger">*</span></label>
+                                    <input type="password"
+                                        class="form-control <?= !empty($errors['password']) ? 'is-invalid' : '' ?>"
+                                        id="password"
+                                        name="password"
+                                        placeholder="Nhập mật khẩu...">
+                                    <?php if (!empty($errors['password'])): ?>
+                                        <div class="invalid-feedback">
+                                            <?= htmlspecialchars($errors['password'][0]) ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
-                            <?php endif; ?>
-                        </div>
 
-                        <!-- FULL NAME -->
-                        <div class="form-group">
-                            <label for="full_name">Họ tên</label>
-                            <input type="text"
-                                class="form-control <?= !empty($errors['full_name']) ? 'is-invalid' : '' ?>"
-                                id="full_name"
-                                name="full_name"
-                                value="<?= htmlspecialchars($old['full_name'] ?? '') ?>">
-                            <?php if (!empty($errors['full_name'])): ?>
-                                <div class="invalid-feedback">
-                                    <?= htmlspecialchars($errors['full_name'][0]) ?>
+                                <!-- PASSWORD CONFIRMATION -->
+                                <div class="form-group">
+                                    <label for="password_confirmation">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                                    <input type="password"
+                                        class="form-control <?= !empty($errors['password_confirmation']) ? 'is-invalid' : '' ?>"
+                                        id="password_confirmation"
+                                        name="password_confirmation"
+                                        placeholder="Nhập lại mật khẩu...">
+                                    <?php if (!empty($errors['password_confirmation'])): ?>
+                                        <div class="invalid-feedback">
+                                            <?= htmlspecialchars($errors['password_confirmation'][0]) ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
-                            <?php endif; ?>
-                        </div>
 
-                        <!-- EMAIL -->
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input type="email"
-                                class="form-control <?= !empty($errors['email']) ? 'is-invalid' : '' ?>"
-                                id="email"
-                                name="email"
-                                value="<?= htmlspecialchars($old['email'] ?? '') ?>">
-                            <?php if (!empty($errors['email'])): ?>
-                                <div class="invalid-feedback">
-                                    <?= htmlspecialchars($errors['email'][0]) ?>
+                                <!-- FULL NAME -->
+                                <div class="form-group">
+                                    <label for="full_name">Họ tên <span class="text-danger">*</span></label>
+                                    <input type="text"
+                                        class="form-control <?= !empty($errors['full_name']) ? 'is-invalid' : '' ?>"
+                                        id="full_name"
+                                        name="full_name"
+                                        placeholder="Nhập họ và tên..."
+                                        value="<?= htmlspecialchars($old['full_name'] ?? '') ?>">
+                                    <?php if (!empty($errors['full_name'])): ?>
+                                        <div class="invalid-feedback">
+                                            <?= htmlspecialchars($errors['full_name'][0]) ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
-                            <?php endif; ?>
-                        </div>
 
-                        <!-- PHONE -->
-                        <div class="form-group">
-                            <label for="phone">Số điện thoại</label>
-                            <input type="text"
-                                class="form-control <?= !empty($errors['phone']) ? 'is-invalid' : '' ?>"
-                                id="phone"
-                                name="phone"
-                                value="<?= htmlspecialchars($old['phone'] ?? '') ?>">
-                            <?php if (!empty($errors['phone'])): ?>
-                                <div class="invalid-feedback">
-                                    <?= htmlspecialchars($errors['phone'][0]) ?>
+                                <!-- EMAIL -->
+                                <div class="form-group">
+                                    <label for="email">Email <span class="text-danger">*</span></label>
+                                    <input type="email"
+                                        class="form-control <?= !empty($errors['email']) ? 'is-invalid' : '' ?>"
+                                        id="email"
+                                        name="email"
+                                        placeholder="Nhập địa chỉ email..."
+                                        value="<?= htmlspecialchars($old['email'] ?? '') ?>">
+                                    <?php if (!empty($errors['email'])): ?>
+                                        <div class="invalid-feedback">
+                                            <?= htmlspecialchars($errors['email'][0]) ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
-                            <?php endif; ?>
-                        </div>
 
-                        <!-- GENERAL ERROR (ví dụ lỗi DB, catch exception) -->
-                        <?php if (!empty($errors['general'])): ?>
-                            <div class="alert alert-danger">
-                                <?= htmlspecialchars($errors['general'][0]) ?>
+                                <!-- PHONE -->
+                                <div class="form-group">
+                                    <label for="phone">Số điện thoại</label>
+                                    <input type="text"
+                                        class="form-control <?= !empty($errors['phone']) ? 'is-invalid' : '' ?>"
+                                        id="phone"
+                                        name="phone"
+                                        placeholder="Nhập số điện thoại..."
+                                        value="<?= htmlspecialchars($old['phone'] ?? '') ?>">
+                                    <?php if (!empty($errors['phone'])): ?>
+                                        <div class="invalid-feedback">
+                                            <?= htmlspecialchars($errors['phone'][0]) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+
+                                <!-- ROLE (CHỨC VỤ) - MỚI THÊM -->
+                                <div class="form-group">
+                                    <label for="role">Chức vụ <span class="text-danger">*</span></label>
+                                    <select class="form-control" name="role" id="role">
+                                        <!-- 0: Admin, 1: HDV (Theo yêu cầu của bạn) -->
+                                        <option value="0" <?= (isset($old['role']) && (string)$old['role'] === '0') ? 'selected' : '' ?>>Quản trị viên (Admin)</option>
+                                        <option value="1" <?= (isset($old['role']) && (string)$old['role'] === '1') ? 'selected' : '' ?>>Hướng dẫn viên</option>
+                                    </select>
+                                </div>
+
                             </div>
-                        <?php endif; ?>
+                            <!-- /.card-body -->
 
-                        <!-- SUBMIT -->
-                        <button type="submit" class="btn btn-primary">Thêm người dùng</button>
-                    </form>
-
+                            <div class="card-footer text-right">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Thêm người dùng
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <!-- /.card -->
 
                 </div>
-                <!-- /.card-body -->
             </div>
-            <!-- /.card -->
         </div>
-        <!-- /.col -->
+    </section>
 </div>
-<!-- /.row -->
-</div>
-<!-- /.container-fluid -->
-</section>
-<!-- /.content -->
-</div>
-<!-- /.content-wrapper -->
-<!-- <footer> -->
+
 <?php include __DIR__ . '/../../layout/footer.php'; ?>
-<!-- endforeach -->
-<!-- Page specific script -->
-<!-- Code injected by live-server -->
-
-
-<!-- Phần Footer -->

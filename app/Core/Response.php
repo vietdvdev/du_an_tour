@@ -19,9 +19,24 @@ class Response
         return $r;
     }
 
-    /** Redirect tới URL (giữ kiểu trả về Response để Router->send() xử lý) */
+    /** * Redirect tới URL 
+     * Đã nâng cấp: Tự động thêm Base Path nếu chạy trong thư mục con
+     */
     public static function redirect(string $to, int $status = 302): self
     {
+        // Logic mới: Tự động thêm Base Path nếu đường dẫn bắt đầu bằng '/'
+        if (str_starts_with($to, '/')) {
+            // 1. Lấy đường dẫn gốc của ứng dụng (VD: /du_an_tour/public)
+            // dirname($_SERVER['SCRIPT_NAME']) trả về đường dẫn chứa file index.php
+            $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+            
+            // 2. Nếu $to chưa chứa base path thì nối vào
+            // Ví dụ: $to là '/login', $base là '/du_an_tour/public' -> Kết quả: '/du_an_tour/public/login'
+            if ($base && !str_starts_with($to, $base)) {
+                $to = $base . $to;
+            }
+        }
+
         $r = new self();
         $r->status  = $status;
         $r->headers = ['Location' => $to];
@@ -29,7 +44,7 @@ class Response
         return $r;
     }
 
-    /** Alias cho redirect: Response::to('/users') */
+    /** Alias cho redirect */
     public static function to(string $url, int $status = 302): self
     {
         return self::redirect($url, $status);
@@ -39,23 +54,22 @@ class Response
     public static function back(int $status = 302): self
     {
         $previous = $_SERVER['HTTP_REFERER'] ?? '/';
+        // Với back(), ta không cần sửa base path vì REFERER thường đã là full URL
         return self::redirect($previous, $status);
     }
 
     /* ---------- Enrichers (chainable) ---------- */
 
-    /** Flash message: Response::redirect('/users')->with('success','OK') */
     public function with(string $key, $value): self
     {
-        Session::start();
+        if (session_status() === PHP_SESSION_NONE) session_start();
         $_SESSION['flash'][$key] = $value;
         return $this;
     }
 
-    /** Lưu lại input cũ để fill form: ->withInput($data) */
     public function withInput(array $input): self
     {
-        Session::start();
+        if (session_status() === PHP_SESSION_NONE) session_start();
         $_SESSION['old'] = $input;
         return $this;
     }
@@ -84,7 +98,10 @@ class Response
     public static function route(string $name, array $params = []): self
     {
         global $router;
+        // Lấy đường dẫn từ Router
         $url = $router->url($name, $params);
+        
+        // Gọi lại redirect để nó tự xử lý base path cho $url này
         return self::redirect($url);
     }
 }

@@ -31,4 +31,5 @@ class Assignment extends BaseModel
             
         return !empty($overlap);
     }
+
 }

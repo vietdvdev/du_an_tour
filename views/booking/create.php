@@ -17,7 +17,7 @@
 
             <form action="<?= route('booking.store') ?>" method="POST" id="bookingForm">
                 <div class="row">
-                    <!-- Cột Trái: Thông tin chung -->
+                    <!-- Cột Trái: Thông tin người đặt -->
                     <div class="col-md-4">
                         <div class="card card-success card-outline">
                             <div class="card-header">
@@ -26,27 +26,25 @@
                             <div class="card-body">
                                 <div class="form-group">
                                     <label>Chọn Đợt Khởi Hành <span class="text-danger">*</span></label>
-                                    <select name="departure_id" class="form-control" required>
+                                    <select name="departure_id" class="form-control select2" required>
                                         <option value="">-- Chọn lịch --</option>
                                         <?php foreach ($departures as $dep): ?>
                                             <option value="<?= $dep['id'] ?>" 
                                                 <?= (isset($old['departure_id']) && $old['departure_id'] == $dep['id']) ? 'selected' : '' ?>>
                                                 [<?= date('d/m/Y', strtotime($dep['start_date'])) ?>] 
                                                 <?= htmlspecialchars($dep['tour_name']) ?> 
-                                                (Capacity: <?= $dep['capacity'] ?>)
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <?php if(isset($errors['departure_id'])): ?><div class="text-danger small"><?= $errors['departure_id'] ?></div><?php endif; ?>
                                 </div>
 
                                 <div class="form-group">
-                                    <label>Người liên hệ <span class="text-danger">*</span></label>
-                                    <input type="text" name="contact_name" class="form-control" placeholder="Họ tên người đặt" required value="<?= $old['contact_name'] ?? '' ?>">
+                                    <label>Người liên hệ</label>
+                                    <input type="text" name="contact_name" class="form-control" required value="<?= $old['contact_name'] ?? '' ?>">
                                 </div>
 
                                 <div class="form-group">
-                                    <label>Số điện thoại <span class="text-danger">*</span></label>
+                                    <label>Số điện thoại</label>
                                     <input type="text" name="contact_phone" class="form-control" required value="<?= $old['contact_phone'] ?? '' ?>">
                                 </div>
                                 
@@ -56,7 +54,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label>Ghi chú booking</label>
+                                    <label>Ghi chú</label>
                                     <textarea name="note" class="form-control" rows="3"><?= $old['note'] ?? '' ?></textarea>
                                 </div>
                             </div>
@@ -67,7 +65,7 @@
                     <div class="col-md-8">
                         <div class="card card-outline card-primary h-100">
                             <div class="card-header d-flex justify-content-between align-items-center">
-                                <h3 class="card-title">Danh sách Khách hàng (Travelers)</h3>
+                                <h3 class="card-title">Danh sách Khách hàng</h3>
                                 <button type="button" class="btn btn-sm btn-primary ml-auto" id="btnAddTraveler">
                                     <i class="fas fa-user-plus"></i> Thêm khách
                                 </button>
@@ -84,12 +82,13 @@
                                         </tr>
                                     </thead>
                                     <tbody id="travelerContainer">
-                                        <!-- JS sẽ render vào đây -->
+                                        <!-- Dòng khách hàng sẽ được JS thêm vào đây -->
                                     </tbody>
                                 </table>
                             </div>
                             <div class="card-footer bg-light text-right">
-                                <div class="mb-2 font-weight-bold">Tổng số khách: <span id="paxCountDisplay" class="text-primary h4">0</span></div>
+                                <div class="mb-2">Tổng số khách: <b id="paxCountDisplay">0</b></div>
+                                <small class="text-muted d-block mb-2">Hệ thống sẽ tự động tính giá dựa trên ngày sinh khi bạn bấm Lưu.</small>
                                 <button type="submit" class="btn btn-success btn-lg font-weight-bold">
                                     <i class="fas fa-check-circle"></i> XÁC NHẬN ĐẶT CHỖ
                                 </button>
@@ -107,11 +106,10 @@
 <script>
     let travelerIndex = 0;
 
-    // Template dòng khách
+    // Template dòng khách đơn giản (Không có logic tính tuổi phức tạp)
     function createTravelerRow(index, data = {}) {
         const fullName = data.full_name || '';
         const dob = data.dob || '';
-        const gender = data.gender || 'MALE';
         
         return `
             <tr id="row-${index}">
@@ -121,9 +119,9 @@
                 </td>
                 <td>
                     <select name="travelers[${index}][gender]" class="form-control">
-                        <option value="MALE" ${gender === 'MALE' ? 'selected' : ''}>Nam</option>
-                        <option value="FEMALE" ${gender === 'FEMALE' ? 'selected' : ''}>Nữ</option>
-                        <option value="OTHER" ${gender === 'OTHER' ? 'selected' : ''}>Khác</option>
+                        <option value="MALE">Nam</option>
+                        <option value="FEMALE">Nữ</option>
+                        <option value="OTHER">Khác</option>
                     </select>
                 </td>
                 <td>
@@ -138,7 +136,7 @@
         `;
     }
 
-    // Logic thêm/xóa dòng
+    // Các hàm hỗ trợ thêm/xóa dòng (UI Logic bắt buộc phải có JS để dynamic form hoạt động)
     $('#btnAddTraveler').click(function() {
         $('#travelerContainer').append(createTravelerRow(travelerIndex));
         travelerIndex++;
@@ -159,7 +157,7 @@
         $('#paxCountDisplay').text(count);
     }
 
-    // Init
+    // Khởi tạo mặc định
     $(document).ready(function() {
         <?php if (!empty($old_travelers)): ?>
             const oldData = <?= json_encode($old_travelers) ?>;
@@ -168,8 +166,7 @@
                 travelerIndex++;
             });
         <?php else: ?>
-            // Mặc định 1 dòng
-            $('#btnAddTraveler').click();
+            $('#btnAddTraveler').click(); // Mặc định thêm 1 dòng
         <?php endif; ?>
         updateCount();
     });

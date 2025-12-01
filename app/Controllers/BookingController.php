@@ -8,6 +8,9 @@ use App\Models\Booking;
 use App\Models\Traveler;
 use App\Models\Departure;
 use App\Models\TourPrice;
+use App\Models\BookingLog;
+use App\Models\BookingService;
+use App\Models\Payment;
 use App\Models\Tour;
 use App\Core\DB; // Giả sử bạn có class DB để gọi Transaction, nếu không thì dùng PDO từ Model
 
@@ -28,27 +31,43 @@ class BookingController extends BaseController
     {
         $id = (int)($req->params['id'] ?? 0);
         
-        // 1. Lấy thông tin Booking + Tour + Departure
+        // 1. Lấy thông tin Booking
         $booking = (new Booking())->builder()
             ->select('booking.*, departure.start_date, departure.end_date, tour.name as tour_name, tour.code as tour_code')
             ->join('departure', 'departure.id', '=', 'booking.departure_id')
             ->join('tour', 'tour.id', '=', 'departure.tour_id')
             ->where('booking.id', $id)
             ->first();
-      
+
         if (!$booking) {
             $_SESSION['flash_error'] = "Không tìm thấy đơn đặt chỗ.";
             return $this->redirect(route('booking.index'));
         }
-        // dd($booking);
-        // 2. Lấy danh sách khách hàng
+
+        // 2. Lấy dữ liệu các bảng con (Chuẩn bị sẵn cho View)
         $travelers = (new Traveler())->where('booking_id', $id);
-        // dd($travelers);
+        $services  = (new BookingService())->where('booking_id', $id);
+        $payments  = (new Payment())->where('booking_id', $id);
+        
+        // Lấy lịch sử (Nếu chưa có model BookingLog thì bỏ dòng này hoặc tạo Model như hướng dẫn trước)
+        $logs = [];
+        try {
+            $logs = (new \App\Models\BookingLog())
+                    ->builder()
+                    ->where('booking_id', $id)
+                    ->orderBy('created_at', 'DESC')
+                    ->get();
+        } catch (\Throwable $e) {
+            // Bỏ qua nếu chưa tạo bảng log
+        }
 
         return $this->render('booking/show', [
-            'booking' => $booking,
+            'booking'   => $booking,
             'travelers' => $travelers,
-            'title' => 'Chi tiết Booking ' . $booking['code']
+            'services'  => $services,  // Truyền biến này sang View
+            'payments'  => $payments,  // Truyền biến này sang View
+            'logs'      => $logs,      // Truyền biến này sang View
+            'title'     => 'Chi tiết Booking ' . $booking['code']
         ]);
     }
 
@@ -100,7 +119,7 @@ class BookingController extends BaseController
 
         // 1. Gom dữ liệu Input
         $departureId = (int)$req->input('departure_id');
-        $travelersData = $req->input('travelers') ?? []; // Mảng danh sách khách
+        $travelersData = $req->input('travelers') ?? [];
         
         $bookingData = [
             'departure_id'  => $departureId,
@@ -108,11 +127,12 @@ class BookingController extends BaseController
             'contact_phone' => trim((string)$req->input('contact_phone')),
             'contact_email' => trim((string)$req->input('contact_email')),
             'note'          => trim((string)$req->input('note')),
-            'pax_count'     => count($travelersData), // Tự đếm số khách
+            'pax_count'     => count($travelersData),
             'code'          => Booking::generateCode(),
             'state'         => 'PLACED',
             'paid_amount'   => 0
         ];
+
 
         // 2. Validate dữ liệu
         $rules = [
@@ -121,51 +141,60 @@ class BookingController extends BaseController
             'contact_phone' => 'required|max:30',
         ];
         
-        $v = new Validator($bookingData, $rules, []);
-        if ($v->fails() || $bookingData['pax_count'] === 0) {
-            if ($bookingData['pax_count'] === 0) $_SESSION['flash_error'] = "Vui lòng nhập ít nhất 1 khách hàng.";
-            
-            // Load lại data để render view
-            $departures = (new Departure())->builder()
-                ->select('departure.*, tour.code as tour_code, tour.name as tour_name')
-                ->join('tour', 'tour.id', '=', 'departure.tour_id')
-                ->where('departure.status', 'OPEN')->where('departure.start_date', '>=', date('Y-m-d'))
-                ->get();
-
-            return $this->render('booking/create', [
-                'departures' => $departures,
-                'errors' => $v->errors(), 'old' => $bookingData, 'old_travelers' => $travelersData
-            ]);
-        }
-
-        // 3. LOGIC TÍNH TIỀN (Tìm giá ADULT hiệu lực tại ngày khởi hành)
-        // Lấy thông tin đợt khởi hành để biết ngày đi và tour_id
+   
+        // 2. LOGIC TÍNH TIỀN NÂNG CAO (Dựa trên Tuổi)
         $departure = (new Departure())->find($departureId);
         $tourId = $departure['tour_id'];
-        $startDate = $departure['start_date'];
+        $startDate = $departure['start_date']; // Ngày khởi hành để tính tuổi
 
-        // Tìm giá trong bảng tour_price
-        $priceRecord = (new TourPrice())->builder()
+        // Lấy toàn bộ bảng giá hiệu lực của Tour này
+        $priceRecords = (new TourPrice())->builder()
             ->where('tour_id', $tourId)
-            ->where('pax_type', 'ADULT') // Mặc định tính giá người lớn cho đơn giản
             ->where('effective_from', '<=', $startDate)
             ->where('effective_to', '>=', $startDate)
-            ->first();
+            ->get();
 
-        $unitPrice = $priceRecord ? $priceRecord['base_price'] : 0;
-        $bookingData['total_amount'] = $unitPrice * $bookingData['pax_count'];
+        // Chuyển đổi bảng giá về dạng mảng dễ tra cứu: ['ADULT' => 5000, 'CHILD' => 3000]
+        $priceMap = [];
+        foreach ($priceRecords as $p) {
+            $priceMap[$p['pax_type']] = (float)$p['base_price'];
+        }
 
-        // 4. TRANSACTION & TRIGGER HANDLING
-        // Nếu Base Model không hỗ trợ transaction công khai, ta dùng try-catch để rollback thủ công hoặc xử lý lỗi
+        // Tính tổng tiền
+        $totalAmount = 0;
+        
+        // Duyệt qua từng khách để tính tiền
+        foreach ($travelersData as $t) {
+            $dob = $t['dob'] ?? null;
+            $paxType = 'ADULT'; // Mặc định
+
+            if (!empty($dob)) {
+                // Tính tuổi tại thời điểm KHỞI HÀNH (Quan trọng)
+                $age = $this->calculateAge($dob, $startDate);
+                
+                if ($age < 2) {
+                    $paxType = 'INFANT';
+                } elseif ($age < 12) {
+                    $paxType = 'CHILD';
+                } else {
+                    $paxType = 'ADULT';
+                }
+            }
+
+            // Lấy giá, nếu không có giá riêng cho trẻ em thì lấy giá người lớn (hoặc 0 tùy chính sách)
+            $unitPrice = $priceMap[$paxType] ?? ($priceMap['ADULT'] ?? 0);
+            $totalAmount += $unitPrice;
+        }
+
+        $bookingData['total_amount'] = $totalAmount;
+
+        // 3. TRANSACTION & TRIGGER HANDLING (Giữ nguyên logic lưu DB cũ)
         $bookingModel = new Booking();
         $bookingId = 0;
 
         try {
-            // A. Insert Booking (Trigger fn_block_overbook sẽ chạy ở đây)
-            // Nếu Capacity không đủ, DB sẽ ném Exception ngay dòng này
             $bookingId = $bookingModel->create($bookingData);
 
-            // B. Insert Travelers
             $travelerModel = new Traveler();
             foreach ($travelersData as $t) {
                 $travelerModel->create([
@@ -174,10 +203,11 @@ class BookingController extends BaseController
                     'gender'     => $t['gender'] ?? 'OTHER',
                     'dob'        => !empty($t['dob']) ? $t['dob'] : null,
                     'note'       => $t['note'] ?? ''
+                    // Lưu ý: Nếu muốn lưu loại khách vào DB, cần thêm cột 'type' vào bảng traveler
                 ]);
             }
 
-            $_SESSION['flash_success'] = "Đặt tour thành công! Mã: <b>{$bookingData['code']}</b>. Tổng tiền: " . number_format($bookingData['total_amount']);
+            $_SESSION['flash_success'] = "Đặt tour thành công! Tổng tiền: " . number_format($totalAmount) . " đ";
             return $this->redirect(route('booking.show', ['id' => $bookingId]));
 
         } catch (\Throwable $e) {
@@ -199,6 +229,87 @@ class BookingController extends BaseController
             return $this->redirect(route('booking.create'));
         }
     }
+
+        /**
+     * Hàm phụ trợ tính tuổi chính xác theo ngày
+     */
+    private function calculateAge($dob, $atDate)
+    {
+        $birthDate = new \DateTime($dob);
+        $targetDate = new \DateTime($atDate);
+        $interval = $birthDate->diff($targetDate);
+        return $interval->y; // Trả về số năm
+    }
+
+    // [POST] Cập nhật trạng thái thủ công (Có kiểm tra quy tắc nghiệp vụ)
+    public function updateStatus(Request $req): Response
+    {
+        $id = (int)($req->params['id'] ?? 0);
+        $newState = $req->input('status');
+        $note = trim((string)$req->input('note'));
+
+        $bookingModel = new Booking();
+        $booking = $bookingModel->find($id);
+
+        if (!$booking) {
+            $_SESSION['flash_error'] = "Không tìm thấy đơn hàng.";
+            return $this->redirect(route('booking.index'));
+        }
+
+        $oldState = $booking['state'];
+
+        // Nếu trạng thái không đổi thì không làm gì
+        if ($oldState === $newState) {
+            return $this->redirect(route('booking.show', ['id' => $id]));
+        }
+
+        // --- BẮT ĐẦU LOGIC KIỂM TRA (BUSINESS RULES) ---
+
+        // QUY TẮC 1: Nếu đã HOÀN TẤT (COMPLETED), cấm chỉnh sửa bất cứ thứ gì
+        if ($oldState === 'COMPLETED') {
+            $_SESSION['flash_error'] = "❌ Lỗi: Đơn hàng đã <b>HOÀN TẤT</b>. Không thể thay đổi trạng thái nữa.";
+            return $this->redirect(route('booking.show', ['id' => $id]));
+        }
+
+        // QUY TẮC 2: Kiểm tra điều kiện HỦY (CANCELLED)
+        if ($newState === 'CANCELLED') {
+            // Chỉ cho phép hủy nếu đang ở trạng thái 'PLACED' (Chờ xác nhận)
+            if ($oldState === 'DEPOSITED') {
+                $_SESSION['flash_error'] = "❌ Lỗi: Khách hàng đã <b>ĐẶT CỌC</b>. Không thể hủy ngay (Cần xử lý hoàn tiền trước).";
+                return $this->redirect(route('booking.show', ['id' => $id]));
+            }
+            
+            // (Trường hợp COMPLETED đã bị chặn ở Quy tắc 1 rồi)
+        }
+
+        // QUY TẮC 3: Ngăn chặn nhảy cóc trạng thái phi logic (Tùy chọn thêm)
+        // Ví dụ: Không thể chuyển từ PLACED thẳng sang COMPLETED nếu chưa trả đủ tiền
+        // if ($newState === 'COMPLETED' && $booking['paid_amount'] < $booking['total_amount']) {
+        //    $_SESSION['flash_error'] = "Chưa thanh toán đủ, không thể hoàn tất.";
+        //    return ...
+        // }
+
+        // --- KẾT THÚC LOGIC ---
+
+        try {
+            // Cập nhật Booking
+            $bookingModel->update($id, ['state' => $newState]);
+
+            // Ghi Log Lịch sử
+            BookingLog::record($id, $oldState, $newState, $note, 'Admin');
+
+            // Logic xử lý phụ (nếu Hủy thì trả lại chỗ trống) - Database Trigger thường đã lo việc này
+            // Nhưng nếu chưa có Trigger, bạn cần gọi hàm update Capacity ở đây.
+
+            $_SESSION['flash_success'] = "Đã chuyển trạng thái từ <b>$oldState</b> sang <b>$newState</b>.";
+        } catch (\Throwable $e) {
+            $_SESSION['flash_error'] = "Lỗi hệ thống: " . $e->getMessage();
+        }
+
+        return $this->redirect(route('booking.show', ['id' => $id]));
+    }
+
+
 
 
 }
