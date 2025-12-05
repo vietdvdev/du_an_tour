@@ -2,6 +2,7 @@
 <?php include __DIR__ . '/../layout/navbar.php'; ?>
 <?php include __DIR__ . '/../layout/sidebar.php'; ?>
 
+
 <div class="content-wrapper">
     <!-- Header -->
     <div class="content-header">
@@ -14,10 +15,12 @@
         </div>
     </div>
 
+
     <!-- Main Content -->
     <section class="content">
         <div class="container-fluid">
-            
+
+
             <!-- 1. CÁC THẺ THỐNG KÊ (INFO BOXES) -->
             <div class="row">
                 <!-- Tour sắp tới -->
@@ -32,7 +35,8 @@
                         </div>
                     </div>
                 </div>
-                
+
+
                 <!-- Tour đã dẫn -->
                 <div class="col-12 col-sm-6 col-md-3">
                     <div class="info-box mb-3">
@@ -46,6 +50,7 @@
                     </div>
                 </div>
 
+
                 <!-- Đánh giá -->
                 <div class="col-12 col-sm-6 col-md-3">
                     <div class="info-box mb-3">
@@ -58,7 +63,8 @@
                         </div>
                     </div>
                 </div>
-                
+
+
                 <!-- Hồ sơ cá nhân -->
                 <div class="col-12 col-sm-6 col-md-3">
                     <div class="info-box mb-3">
@@ -73,29 +79,36 @@
                 </div>
             </div>
 
+
             <!-- 2. DANH SÁCH LỊCH TRÌNH HÔM NAY -->
             <div class="row">
                 <div class="col-md-12">
                     <div class="card card-outline card-primary">
                         <div class="card-header">
                             <h3 class="card-title">
-                                <i class="far fa-calendar-check mr-1"></i> 
+                                <i class="far fa-calendar-check mr-1"></i>
                                 Lịch trình hôm nay (<?= date('d/m/Y') ?>)
                             </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                            </div>
                         </div>
-                        
+
+
                         <div class="card-body p-0">
                             <?php if (!empty($todayTours)): ?>
                                 <div class="table-responsive">
                                     <table class="table table-striped table-hover m-0">
                                         <thead class="bg-light">
                                             <tr>
-                                                <th>Mã Tour</th>
-                                                <th>Tên Tour</th>
-                                                <th>Thời gian</th>
-                                                <th>Vai trò</th>
-                                                <th>Điểm đón</th>
-                                                <th class="text-right" style="width: 150px;">Thao tác</th>
+                                                <th class="align-middle">Mã Tour</th>
+                                                <th class="align-middle">Tên Tour</th>
+                                                <th class="align-middle">Thời gian</th>
+                                                <th class="align-middle text-center">Vai trò</th>
+                                                <th class="align-middle">Điểm đón</th>
+                                                <th class="align-middle text-center" style="width: 150px;">Thao tác</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -104,29 +117,45 @@
                                                     <td class="align-middle">
                                                         <span class="badge badge-info"><?= htmlspecialchars($tour['tour_code']) ?></span>
                                                     </td>
+                                                   
                                                     <td class="align-middle font-weight-bold">
                                                         <?= htmlspecialchars($tour['tour_name']) ?>
                                                     </td>
+                                                   
                                                     <td class="align-middle">
-                                                        <small class="d-block text-muted">Đi: <?= date('d/m/Y', strtotime($tour['start_date'])) ?></small>
-                                                        <small class="d-block text-muted">Về: <?= date('d/m/Y', strtotime($tour['dep_end_date'])) ?></small>
+                                                        <small class="d-block text-muted">Từ <i class="fas fa-plane-departure text-xs mr-1"></i> <?= date('d/m/Y', strtotime($tour['start_date'])) ?></small>
+                                                        <small class="d-block text-muted">Đến <i class="fas fa-plane-arrival text-xs mr-1"></i> <?= date('d/m/Y', strtotime($tour['dep_end_date'])) ?></small>
                                                     </td>
-                                                    <td class="align-middle">
+                                                   
+                                                    <td class="align-middle text-center">
                                                         <?php if ($tour['role'] == 'MAIN'): ?>
                                                             <span class="badge badge-warning">Trưởng đoàn</span>
                                                         <?php else: ?>
                                                             <span class="badge badge-secondary">Phụ tá</span>
                                                         <?php endif; ?>
                                                     </td>
+                                                   
                                                     <td class="align-middle">
                                                         <?= htmlspecialchars($tour['pickup_point'] ?? '---') ?>
                                                     </td>
-                                                    <td class="align-middle text-right">
-                                                        <!-- Nút Điểm danh nhanh -->
-                                                        <a href="<?= route('guide.attendance') ?>?departure_id=<?= $tour['departure_id'] ?>" 
-                                                           class="btn btn-success btn-sm font-weight-bold">
-                                                            <i class="fas fa-clipboard-check"></i> Điểm danh
-                                                        </a>
+                                                   
+                                                    <!-- PHẦN THAO TÁC: ÁP DỤNG CÁCH 1 (BUTTON GROUP) -->
+                                                    <td class="align-middle text-center">
+                                                        <div class="btn-group btn-group-sm">
+                                                            <!-- Nút Nhật ký -->
+                                                            <a href="<?= route('guide.log.index') ?>?departure_id=<?= $tour['departure_id'] ?>"
+                                                               class="btn btn-default"
+                                                               title="Viết nhật ký">
+                                                                <i class="fas fa-book-open text-warning"></i>
+                                                            </a>
+                                                           
+                                                            <!-- Nút Điểm danh -->
+                                                            <a href="<?= route('guide.attendance') ?>?departure_id=<?= $tour['departure_id'] ?>"
+                                                               class="btn btn-success"
+                                                               title="Điểm danh khách">
+                                                                <i class="fas fa-user-check"></i> Điểm danh
+                                                            </a>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
@@ -151,4 +180,7 @@
     </section>
 </div>
 
+
 <?php include __DIR__ . '/../layout/footer.php'; ?>
+
+

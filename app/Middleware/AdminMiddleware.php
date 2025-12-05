@@ -34,7 +34,8 @@ class AdminMiddleware implements MiddlewareInterface
             
             // Trường hợp 1: Nếu là Hướng dẫn viên (Role = 1), chuyển họ về trang danh sách tour của họ
             if ($role === 1) {
-                return Response::redirect('/list-guide'); // Hoặc route('guide.index') tùy route bạn đặt
+                return Response::redirect(route('profile.index')); // Hoặc route('guide.index') tùy route bạn đặt
+
             }
 
             // Trường hợp 2: Khách hàng hoặc role lạ, chuyển về trang chủ hoặc trang đăng nhập

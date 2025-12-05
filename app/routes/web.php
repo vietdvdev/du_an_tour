@@ -12,6 +12,7 @@ use App\Controllers\BookingController;
 use App\Controllers\PaymentController;
 use App\Controllers\AssignmentController;
 use App\Controllers\BookingFinanceController;
+use App\Controllers\TourLogController;
 use App\Controllers\AttendanceController;
 use App\Controllers\GuideController;
 
@@ -168,6 +169,16 @@ $router->group(['middleware' => [AuthMiddleware::class, GuideMiddleware::class]]
     
     // Xử lý check-in (Ajax)
     $r->post('/guide/attendance/check', [AttendanceController::class, 'checkIn'])->name('guide.attendance.check');
+            // [MỚI] NHẬT KÝ TOUR (Thêm đoạn này)
+    // ---------------------------------------------------------
+    // Xem danh sách & Form viết nhật ký
+    $r->get('/guide/log', [TourLogController::class, 'index'])->name('guide.log.index');
+   
+    // Xử lý lưu nhật ký
+    $r->post('/guide/log/store', [TourLogController::class, 'store'])->name('guide.log.store');
+
+
+
 
 });
 

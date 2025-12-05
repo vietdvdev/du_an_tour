@@ -4,7 +4,7 @@ return [
         'name' => getenv('APP_NAME') ?: 'PHP MVC Base PRO',
         'env' => getenv('APP_ENV') ?: 'local',
        'debug' => filter_var(getenv('APP_DEBUG') ?: 'true', FILTER_VALIDATE_BOOLEAN),
-        'url' => getenv('APP_URL') ?: 'http://localhost/du_an_tour',
+        'url' => getenv('APP_URL') ?: 'http://localhost/du_an_tour/du_an_tour/public/',
         'timezone' => getenv('TIMEZONE') ?: 'Asia/Bangkok',
         'key' => getenv('APP_KEY') ?: 'change-me',
     ],
