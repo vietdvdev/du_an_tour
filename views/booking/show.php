@@ -49,6 +49,7 @@
                 <!-- CỘT PHẢI (INCLUDE TABS) -->
                 <div class="col-md-8">
                     <?php include __DIR__ . '/sections/right_tabs.php'; ?>
+                    
                 </div>
                 
             </div>

@@ -115,4 +115,7 @@ if (!function_exists('public_url')) {
         // ltrim để xóa dấu / ở đầu $path nếu có, tránh bị 2 dấu //
         return base_url(ltrim($path, '/'));
     }
+
+    
 }
+

@@ -191,6 +191,7 @@ class TourController extends BaseController
             'name'          => trim((string)$req->input('name')),
             'category_id'   => (int)($req->input('category_id')),
             'description'   => trim((string)$req->input('description')),
+          
         ];
 
         $rules = [
@@ -219,8 +220,10 @@ class TourController extends BaseController
                 'prices'     => (new TourPrice())->where('tour_id', $id),
                 'policy'     => (new TourPolicy())->firstWhere('tour_id', $id),
                 'suppliers'  => (new TourSupplier())->where('tour_id', $id),
-                'images'     => (new TourImage())->where('tour_id', $id),
+                'images'     => (new TourImage())->where('tour_id', $id),               
                 'categories' => $this->getAvailableCategories(),
+                
+                
             ]);
         }
 
@@ -538,7 +541,7 @@ public function updatePrice(Request $req): Response
             }
         }
 
-        return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=images');
+       return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=itinerary');
     }
 
     // [POST] Công bố Tour
@@ -574,6 +577,7 @@ public function updatePrice(Request $req): Response
     // =========================================================================
 
     // [POST] Cập nhật Chính sách (Hoàn/Hủy)
+  // [POST] Cập nhật Chính sách (Hoàn/Hủy)
     public function updatePolicy(Request $req): Response
     {
         $tourId = (int)($req->params['id'] ?? 0);
@@ -585,17 +589,26 @@ public function updatePrice(Request $req): Response
         ];
 
         try {
-            // Lưu ý: TourPolicy Model phải có protected $primaryKey = 'tour_id';
-            $updated = (new TourPolicy())->update($tourId, $data);
+            $policyModel = new TourPolicy();
+            
+            // 1. Kiểm tra xem trong DB đã có chính sách cho tour này chưa
+            $exists = $policyModel->find($tourId);
 
-            if ($updated) {
+            if ($exists) {
+                // 2a. Nếu CÓ rồi -> Cập nhật
+                $policyModel->update($tourId, $data);
                 $_SESSION['flash_success'] = "Cập nhật chính sách thành công.";
             } else {
-                $_SESSION['flash_success'] = "Đã lưu (Không có thay đổi hoặc tạo mới).";
+                // 2b. Nếu CHƯA có -> Tạo mới (Insert)
+                // Cần thêm tour_id vào data để biết chính sách này của tour nào
+                $data['tour_id'] = $tourId;
+                $policyModel->create($data);
+                $_SESSION['flash_success'] = "Đã tạo mới thiết lập chính sách.";
             }
+
         } catch (\Throwable $e) {
-            error_log("[Policy] " . $e->getMessage());
-            $_SESSION['flash_error'] = "Lỗi hệ thống khi lưu chính sách.";
+            error_log("[Policy Error] " . $e->getMessage());
+            $_SESSION['flash_error'] = "Lỗi hệ thống: " . $e->getMessage();
         }
 
         return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=policy');

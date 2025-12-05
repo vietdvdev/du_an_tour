@@ -3,7 +3,8 @@
         <h3 class="card-title"><i class="fas fa-images"></i> Thư viện ảnh</h3>
     </div>
     <div class="card-body">
-        <form method="POST" action="<?= route('tour.update.images', ['id' => $tourId]) ?>" enctype="multipart/form-data">
+        <!-- SỬA: Thêm dấu = và dùng $tour['id'] -->
+        <form method="POST" action="<?= route('tour.update.images', ['id' => $tour['id']]) ?>" enctype="multipart/form-data">
             <div class="form-group">
                 <label>Tải lên ảnh mới</label>
                 <div class="input-group">
@@ -18,26 +19,31 @@
             </div>
             
             <div class="row mt-3">
-                <?php foreach ($images as $img): ?>
-                <div class="col-md-3 mb-3">
-                    <div class="card tour-image-card border">
-                        <div style="height: 150px; overflow: hidden;">
-                            <img src="<?= public_url($img['url']) ?>" class="card-img-top" style="width: 100%; height: 100%; object-fit: cover;">
-                        </div>
-                        <div class="card-body p-2 text-center">
-                            <?php if($img['is_cover']): ?>
-                                <span class="badge badge-success">Ảnh bìa</span>
-                            <?php else: ?>
-                                <button type="submit" name="set_cover_id" value="<?= $img['id'] ?>" class="btn btn-xs btn-outline-primary">Đặt bìa</button>
-                            <?php endif; ?>
-                            
-                            <button type="submit" name="delete_image_id" value="<?= $img['id'] ?>" class="btn btn-xs btn-outline-danger" onclick="return confirm('Xóa ảnh này?')">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                <?php if (!empty($images)): ?>
+                    <?php foreach ($images as $img): ?>
+                    <div class="col-md-3 mb-3">
+                        <div class="card tour-image-card border h-100">
+                            <div style="height: 150px; overflow: hidden; background: #eee;">
+                                <!-- SỬA: Dùng trực tiếp url nếu đã lưu đường dẫn đầy đủ, hoặc thêm / nếu cần -->
+                                <img src="<?= htmlspecialchars(public_url($img['url'])) ?>" class="card-img-top" style="width: 100%; height: 100%; object-fit: cover;">
+                            </div>
+                            <div class="card-body p-2 text-center">
+                                <?php if($img['is_cover']): ?>
+                                    <span class="badge badge-success w-100 py-2">Ảnh bìa</span>
+                                <?php else: ?>
+                                    <button type="submit" name="set_cover_id" value="<?= $img['id'] ?>" class="btn btn-xs btn-outline-primary mb-1">Đặt bìa</button>
+                                <?php endif; ?>
+                                
+                                <button type="submit" name="delete_image_id" value="<?= $img['id'] ?>" class="btn btn-xs btn-outline-danger" onclick="return confirm('Xóa ảnh này?')">
+                                    <i class="fas fa-trash"></i> Xóa
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <?php endforeach; ?>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="col-12 text-center text-muted">Chưa có hình ảnh nào.</div>
+                <?php endif; ?>
             </div>
         </form>
     </div>
@@ -48,7 +54,8 @@
         <h3 class="card-title"><i class="fas fa-list-ol"></i> Lịch trình chi tiết</h3>
     </div>
     <div class="card-body">
-        <form method="POST" action="<?= route('tour.update.itinerary', ['id' => $tourId]) ?>">
+        <!-- SỬA: Thêm dấu = và dùng $tour['id'] -->
+        <form method="POST" action="<?= route('tour.update.itinerary', ['id' => $tour['id']]) ?>">
             
             <div id="itinerary-container">
                 <?php 
@@ -63,6 +70,7 @@
                         <h5 class="m-0 text-primary">Ngày <span class="day-number"><?= $dayNo ?></span></h5>
                         
                         <?php if (isset($day['id']) && $day['id'] > 0): ?>
+                            <!-- Nút xóa ngày đã có trong DB -->
                             <button type="submit" 
                                     formaction="<?= route('tour.itinerary.delete_item', ['id' => $day['id']]) ?>" 
                                     formnovalidate
@@ -71,6 +79,7 @@
                                 <i class="fas fa-trash"></i> Xóa ngày
                             </button>
                         <?php else: ?>
+                            <!-- Nút xóa dòng chưa lưu (JS) -->
                             <button type="button" class="btn btn-sm btn-secondary" onclick="this.closest('.itinerary-item').remove()">
                                 <i class="fas fa-times"></i> Bỏ dòng này
                             </button>
@@ -92,7 +101,7 @@
             </div>
             
             <div class="mt-3 d-flex justify-content-between">
-                <button type="button" class="btn btn-info" id="btn-add-day"><i class="fas fa-plus"></i> Thêm dòng nhập</button>
+                <button type="button" class="btn btn-info" id="btn-add-day"><i class="fas fa-plus"></i> Thêm ngày mới</button>
                 <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save"></i> Lưu Tất Cả</button>
             </div>
         </form>
@@ -117,31 +126,26 @@ document.getElementById('btn-add-day').addEventListener('click', function() {
                 <input type="text" name="itineraries[${index}][title]" class="form-control" placeholder="Nhập tiêu đề..." required>
             </div>
             <div class="form-group">
-                <textarea name="itineraries[${index}][content]" class="form-control" rows="3" placeholder="Nội dung..."></textarea>
+                <textarea name="itineraries[${index}][content]" class="form-control" rows="3" placeholder="Nội dung hoạt động..."></textarea>
             </div>
         </div>
     `;
     container.insertAdjacentHTML('beforeend', html);
 });
-</script>
 
-<script>
-    // Xử lý hiển thị tên file khi chọn ảnh
-    document.getElementById('tourImages').addEventListener('change', function(e) {
-        // 1. Lấy danh sách các file đã chọn
+// Xử lý hiển thị tên file khi chọn ảnh
+const fileInput = document.getElementById('tourImages');
+if(fileInput){
+    fileInput.addEventListener('change', function(e) {
         var files = e.target.files;
-        var label = e.target.nextElementSibling; // Thẻ label ngay kế bên input
-
-        // 2. Xử lý logic hiển thị
+        var label = e.target.nextElementSibling;
         if (files && files.length > 1) {
-            // Nếu chọn nhiều file -> Hiển thị số lượng
             label.innerText = files.length + ' file đã được chọn';
         } else if (files && files.length === 1) {
-            // Nếu chọn 1 file -> Hiển thị tên file đó
             label.innerText = files[0].name;
         } else {
-            // Không chọn gì -> Trả về mặc định
             label.innerText = 'Chọn file...';
         }
     });
+}
 </script>

@@ -56,7 +56,7 @@ class AuthController extends BaseController
             if ($user['role'] == 0) {
                 return $this->redirect(route('admin.index')); // Vào trang Admin
             } elseif ($user['role'] == 1) {
-                return $this->redirect(route('guide.index')); // Vào trang HDV
+                return $this->redirect(route('admin.guide.index')); // Vào trang HDV
             } else {
                 return $this->redirect('/'); // Khách hàng
             }

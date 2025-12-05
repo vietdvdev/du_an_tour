@@ -129,36 +129,7 @@
                             </li>
                         </ul>
                     </li>
-
-
-                <?php endif; ?>
-
-
-                <!-- ================================================= -->
-                <!-- 2. MENU DÀNH RIÊNG CHO HƯỚNG DẪN VIÊN (HDV - 1)   -->
-                <!-- ================================================= -->
-                <?php if ($role === 1): ?>
                     
-                    <li class="nav-item">
-                        <a href="<?= route('guide.index') ?>" class="nav-link active">
-                            <i class="nav-icon fas fa-tachometer-alt"></i>
-                            <p>Bàn làm việc</p>
-                        </a>
-                    </li>
-
-                    <li class="nav-header font-weight-bold">CÔNG VIỆC</li>
-
-                    <li class="nav-item">
-                        <!-- Link mẫu xem lịch tour của chính mình -->
-                        <a href="#" class="nav-link">
-                            <i class="nav-icon fas fa-calendar-check"></i> 
-                            <p>Lịch dẫn tour</p>
-                        </a>
-                    </li>
-
-                <?php endif; ?>
-
-
                 <!-- ================================================= -->
                 <!-- 3. MENU CHUNG (AI CŨNG THẤY)                      -->
                 <!-- ================================================= -->
@@ -167,11 +138,40 @@
                 
                 <li class="nav-item">
                     <!-- Ví dụ route xem hồ sơ cá nhân -->
-                    <a href="<?= route('admin.detail', ['id' => $_SESSION['user_id'] ?? 0]) ?>" class="nav-link">
+                    <a href="<?= route('profile.index') ?>" class="nav-link">
                         <i class="nav-icon fas fa-id-card"></i> 
                         <p>Hồ sơ của tôi</p>
                     </a>
                 </li>
+
+
+                <?php endif; ?>
+
+
+                <!-- ================================================= -->
+                <!-- 2. MENU DÀNH RIÊNG CHO HƯỚNG DẪN VIÊN (HDV - 1)   -->
+                <!-- ================================================= -->
+                    <?php if ($role === 1): ?>
+            
+                        <li class="nav-item">
+                            <a href="<?= route('guide.dashboard') ?>" class="nav-link">
+                                <i class="nav-icon fas fa-tachometer-alt"></i>
+                                <p>Bàn làm việc</p>
+                            </a>
+                        </li>
+
+                        <li class="nav-header font-weight-bold">CÔNG VIỆC</li>
+
+                        <li class="nav-item">
+                            <!-- CẬP NHẬT LINK Ở ĐÂY -->
+                            <a href="<?= route('guide.my_tours') ?>" class="nav-link">
+                                <i class="nav-icon fas fa-calendar-check"></i> 
+                                <p>Lịch dẫn tour</p>
+                            </a>
+                        </li>
+
+                    <?php endif; ?>
+
 
             </ul>
         </nav>

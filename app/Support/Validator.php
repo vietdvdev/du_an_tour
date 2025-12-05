@@ -1,7 +1,8 @@
 <?php
+
 namespace App\Support;
 
-use App\Core\Database;
+use App\Core\DB;
 
 class Validator
 {
@@ -63,7 +64,7 @@ class Validator
                     if ($this->isEmpty($value)) {
                         $this->addError($field, 'required', "Trường $field là bắt buộc.");
                         // Nếu required fail, các rule khác (trừ sometimes) không cần check nữa
-                        continue;
+                        continue 2; // Chuyển sang field tiếp theo
                     }
                     // Nếu có required và đã có giá trị => tiếp tục rules khác
                     continue;
@@ -202,7 +203,6 @@ class Validator
                             $this->addError($field, 'file', "Trường $field phải là tệp tải lên hợp lệ.");
                             break;
                         }
-                        // Nếu kèm mimes hoặc file_max, chúng sẽ chạy ở rule tương ứng
                         break;
 
                     case 'mimes':
@@ -236,11 +236,11 @@ class Validator
                             $result = call_user_func(self::$customRules[$customName], $value, $customParams, $this->data);
                             if ($result === false) {
                                 // Thông điệp mặc định cho custom
-                                $msg = self::$customRuleMessages[$customName] ?? null;
-                                $text = $msg ? $msg($field, $customParams) : "Trường $field không hợp lệ.";
+                                $msgResolver = self::$customRuleMessages[$customName] ?? null;
+                                $text = $msgResolver ? $msgResolver($field, $customParams) : "Trường $field không hợp lệ.";
                                 $this->addError($field, "custom.$customName", $text);
                             } elseif (is_string($result)) {
-                                // cho phép trả về chuỗi lỗi tùy ý
+                                // cho phép callback trả về chuỗi lỗi tùy ý
                                 $this->addError($field, "custom.$customName", $result);
                             }
                         }
@@ -317,15 +317,14 @@ class Validator
 
     protected function dbCount(string $table, string $column, $value, $exceptId = null, string $idColumn = 'id'): int
     {
-        $pdo = Database::pdo();
+        // Sử dụng DB query builder (App\Core\DB)
+        $query = DB::table($table)->where($column, $value);
+        
         if ($exceptId !== null && $exceptId !== '') {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM {$table} WHERE {$column} = :v AND {$idColumn} <> :id");
-            $stmt->execute(['v' => $value, 'id' => $exceptId]);
-        } else {
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM {$table} WHERE {$column} = :v");
-            $stmt->execute(['v' => $value]);
+             $query->where($idColumn, '!=', $exceptId);
         }
-        return (int)$stmt->fetchColumn();
+        
+        return $query->count();
     }
 
     protected function isUploadedFile($value): bool
@@ -343,7 +342,6 @@ class Validator
             $mime = finfo_file($f, $tmpPath);
             finfo_close($f);
             // Trả về phần subtype nếu muốn so khớp cùng mimes rule dựa trên đuôi
-            // Ở đây mình trả về chính mime (vd: image/jpeg), rule mimes chấp nhận đuôi hoặc mime
             return $mime;
         }
         return null;

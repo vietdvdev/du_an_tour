@@ -7,7 +7,7 @@
 <?php include __DIR__ . '/../layout/sidebar.php'; ?>
 
 <!-- Phần nỗi dung -->
-
+<h1>XIn chao</h1>
 <!-- /.content-wrapper -->
 <!-- <footer> -->
 <?php include __DIR__ . '/../layout/footer.php'; ?>

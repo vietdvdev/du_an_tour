@@ -24,7 +24,11 @@ if (empty($old) && !empty($user)) {
                     <h1>Chỉnh sửa tài khoản</h1>
                 </div>
                 <div class="col-sm-6 text-right">
-                    <a href="<?= isset($old['role']) && $old['role'] == 1 ? route('guide.index') : route('admin.index') ?>" class="btn btn-default">
+                    <?php
+                    // Xác định role an toàn
+                    $currentRole = $old['role'] ?? ($user['role'] ?? 0);
+                    ?>
+                    <a href="<?= $currentRole == 1 ? route('admin.guide.index') : route('admin.index') ?>" class="btn btn-default">
                         <i class="fas fa-arrow-left"></i> Quay lại danh sách
                     </a>
                 </div>
@@ -39,7 +43,8 @@ if (empty($old) && !empty($user)) {
             <!-- Flash Success -->
             <?php if (!empty($_SESSION['flash_success'])): ?>
                 <div class="alert alert-success">
-                    <?= $_SESSION['flash_success']; unset($_SESSION['flash_success']); ?>
+                    <?= $_SESSION['flash_success'];
+                    unset($_SESSION['flash_success']); ?>
                 </div>
             <?php endif; ?>
 
@@ -53,7 +58,7 @@ if (empty($old) && !empty($user)) {
             <!-- Form Edit (Có upload file) -->
             <form action="<?= route('admin.update', ['id' => $old['id']]) ?>" method="POST" enctype="multipart/form-data">
                 <div class="row">
-                    
+
                     <!-- CỘT TRÁI: THÔNG TIN CƠ BẢN (Bảng users) -->
                     <div class="col-md-6">
                         <div class="card card-warning">
@@ -61,7 +66,7 @@ if (empty($old) && !empty($user)) {
                                 <h3 class="card-title">Thông tin đăng nhập & Cá nhân</h3>
                             </div>
                             <div class="card-body">
-                                
+
                                 <!-- ROLE -->
                                 <div class="form-group">
                                     <label>Chức vụ <span class="text-danger">*</span></label>
@@ -75,16 +80,16 @@ if (empty($old) && !empty($user)) {
                                 <!-- USERNAME -->
                                 <div class="form-group">
                                     <label>Tên đăng nhập <span class="text-danger">*</span></label>
-                                    <input type="text" name="username" class="form-control <?= isset($errors['username']) ? 'is-invalid' : '' ?>" 
-                                           value="<?= htmlspecialchars($old['username'] ?? '') ?>">
-                                    <?php if(isset($errors['username'])): ?><div class="invalid-feedback"><?= $errors['username'][0] ?></div><?php endif; ?>
+                                    <input type="text" name="username" class="form-control <?= isset($errors['username']) ? 'is-invalid' : '' ?>"
+                                        value="<?= htmlspecialchars($old['username'] ?? '') ?>">
+                                    <?php if (isset($errors['username'])): ?><div class="invalid-feedback"><?= $errors['username'][0] ?></div><?php endif; ?>
                                 </div>
 
                                 <!-- PASSWORD -->
                                 <div class="form-group">
                                     <label>Mật khẩu mới (Để trống nếu không đổi)</label>
                                     <input type="password" name="password" class="form-control <?= isset($errors['password']) ? 'is-invalid' : '' ?>" placeholder="******">
-                                    <?php if(isset($errors['password'])): ?><div class="invalid-feedback"><?= $errors['password'][0] ?></div><?php endif; ?>
+                                    <?php if (isset($errors['password'])): ?><div class="invalid-feedback"><?= $errors['password'][0] ?></div><?php endif; ?>
                                 </div>
                                 <div class="form-group">
                                     <label>Xác nhận mật khẩu mới</label>
@@ -94,25 +99,25 @@ if (empty($old) && !empty($user)) {
                                 <!-- FULL NAME -->
                                 <div class="form-group">
                                     <label>Họ và tên <span class="text-danger">*</span></label>
-                                    <input type="text" name="full_name" class="form-control <?= isset($errors['full_name']) ? 'is-invalid' : '' ?>" 
-                                           value="<?= htmlspecialchars($old['full_name'] ?? '') ?>">
-                                    <?php if(isset($errors['full_name'])): ?><div class="invalid-feedback"><?= $errors['full_name'][0] ?></div><?php endif; ?>
+                                    <input type="text" name="full_name" class="form-control <?= isset($errors['full_name']) ? 'is-invalid' : '' ?>"
+                                        value="<?= htmlspecialchars($old['full_name'] ?? '') ?>">
+                                    <?php if (isset($errors['full_name'])): ?><div class="invalid-feedback"><?= $errors['full_name'][0] ?></div><?php endif; ?>
                                 </div>
 
                                 <!-- EMAIL -->
                                 <div class="form-group">
                                     <label>Email <span class="text-danger">*</span></label>
-                                    <input type="email" name="email" class="form-control <?= isset($errors['email']) ? 'is-invalid' : '' ?>" 
-                                           value="<?= htmlspecialchars($old['email'] ?? '') ?>">
-                                    <?php if(isset($errors['email'])): ?><div class="invalid-feedback"><?= $errors['email'][0] ?></div><?php endif; ?>
+                                    <input type="email" name="email" class="form-control <?= isset($errors['email']) ? 'is-invalid' : '' ?>"
+                                        value="<?= htmlspecialchars($old['email'] ?? '') ?>">
+                                    <?php if (isset($errors['email'])): ?><div class="invalid-feedback"><?= $errors['email'][0] ?></div><?php endif; ?>
                                 </div>
 
                                 <!-- PHONE -->
                                 <div class="form-group">
                                     <label>Số điện thoại</label>
-                                    <input type="text" name="phone" class="form-control <?= isset($errors['phone']) ? 'is-invalid' : '' ?>" 
-                                           value="<?= htmlspecialchars($old['phone'] ?? '') ?>">
-                                     <?php if(isset($errors['phone'])): ?><div class="invalid-feedback"><?= $errors['phone'][0] ?></div><?php endif; ?>
+                                    <input type="text" name="phone" class="form-control <?= isset($errors['phone']) ? 'is-invalid' : '' ?>"
+                                        value="<?= htmlspecialchars($old['phone'] ?? '') ?>">
+                                    <?php if (isset($errors['phone'])): ?><div class="invalid-feedback"><?= $errors['phone'][0] ?></div><?php endif; ?>
                                 </div>
                             </div>
                         </div>
@@ -126,20 +131,20 @@ if (empty($old) && !empty($user)) {
                                 <h3 class="card-title">Hồ sơ Hướng dẫn viên</h3>
                             </div>
                             <div class="card-body">
-                                
+
                                 <div class="row">
                                     <div class="col-6">
                                         <div class="form-group">
                                             <label>Số thẻ HDV</label>
-                                            <input type="text" name="license_number" class="form-control" 
-                                                   value="<?= htmlspecialchars($old['license_number'] ?? '') ?>" placeholder="VD: 12345678">
+                                            <input type="text" name="license_number" class="form-control"
+                                                value="<?= htmlspecialchars($old['license_number'] ?? '') ?>" placeholder="VD: 12345678">
                                         </div>
                                     </div>
                                     <div class="col-6">
                                         <div class="form-group">
                                             <label>Ngày hết hạn thẻ</label>
-                                            <input type="date" name="license_expiry" class="form-control" 
-                                                   value="<?= htmlspecialchars($old['license_expiry'] ?? '') ?>">
+                                            <input type="date" name="license_expiry" class="form-control"
+                                                value="<?= htmlspecialchars($old['license_expiry'] ?? '') ?>">
                                         </div>
                                     </div>
                                 </div>
@@ -170,9 +175,9 @@ if (empty($old) && !empty($user)) {
                                         <input type="file" class="custom-file-input" id="avatar" name="avatar" accept="image/*">
                                         <label class="custom-file-label" for="avatar">Chọn file ảnh mới...</label>
                                     </div>
-                                    
+
                                     <!-- Hiển thị ảnh hiện tại nếu có -->
-                                    <?php if(!empty($old['avatar_url'])): ?>
+                                    <?php if (!empty($old['avatar_url'])): ?>
                                         <div class="mt-2 p-2 text-center" style="background: #f8f9fa; border: 1px dashed #ced4da; border-radius: 5px;">
                                             <small class="d-block mb-1 text-muted">Ảnh hiện tại:</small>
                                             <img src="<?= htmlspecialchars($old['avatar_url']) ?>" alt="Current Avatar" class="img-circle elevation-2" style="height: 80px; width: 80px; object-fit: cover;">
@@ -182,14 +187,14 @@ if (empty($old) && !empty($user)) {
 
                                 <div class="form-group">
                                     <label>Kinh nghiệm (năm)</label>
-                                    <input type="number" name="experience_years" class="form-control" 
-                                           value="<?= htmlspecialchars($old['experience_years'] ?? '0') ?>">
+                                    <input type="number" name="experience_years" class="form-control"
+                                        value="<?= htmlspecialchars($old['experience_years'] ?? '0') ?>">
                                 </div>
 
                                 <div class="form-group">
                                     <label>Ngôn ngữ thành thạo</label>
-                                    <input type="text" name="languages" class="form-control" 
-                                           value="<?= htmlspecialchars($old['languages'] ?? '') ?>" placeholder="VD: Tiếng Anh, Tiếng Trung...">
+                                    <input type="text" name="languages" class="form-control"
+                                        value="<?= htmlspecialchars($old['languages'] ?? '') ?>" placeholder="VD: Tiếng Anh, Tiếng Trung...">
                                 </div>
 
                                 <div class="form-group">

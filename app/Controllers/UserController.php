@@ -221,8 +221,8 @@ public function toggleStatus(Request $req): Response
         
         // Rules (unique ngoại trừ ID hiện tại)
         $rules = [
-            'username'  => 'required|string|min:3|max:100|regex:/^[A-Za-z0-9_.-]+$/|unique:users,username,' . $id,
-            'full_name' => 'required|string|max:255',
+            'username' => 'required|unique:users,username,' . $id,
+            'email'    => 'required|unique:users,email,' . $id,
             'email'     => 'required|email|max:255|unique:users,email,' . $id,
             'phone'     => 'nullable|integer|max:30',
             'role'      => 'integer',
@@ -436,4 +436,181 @@ public function toggleStatus(Request $req): Response
             'profile' => $profile // Có thể null hoặc mảng rỗng nếu chưa có profile
         ]);
     }
+
+
+        public function profile(Request $req): Response
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        
+        // Lấy ID từ Session (Người đang đăng nhập)
+        $id = $_SESSION['user_id'] ?? 0;
+        if ($id <= 0) return $this->redirect('/login');
+
+        // 1. Lấy thông tin User
+        $user = (new User())->find($id);
+        if (!$user) return $this->redirect('/logout'); // User không tồn tại -> Đăng xuất
+
+        // 2. Lấy thông tin Profile mở rộng (nếu là HDV)
+        $profile = [];
+        if ((int)$user['role'] === 1) {
+            $profile = (new GuideProfile())->firstWhere('user_id', $id);
+        }
+
+        return $this->render('tai-khoan/profile/index', [
+            'user'    => $user,
+            'profile' => $profile
+        ]);
+    }
+
+    /**
+     * [GET] Form sửa hồ sơ cá nhân
+     * Route: /profile/edit
+     */
+    public function editProfile(Request $req): Response
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        $id = $_SESSION['user_id'] ?? 0;
+
+        $user = (new User())->find($id);
+        if (!$user) return $this->redirect('/login');
+
+        // Gộp thông tin nếu là HDV để hiển thị ra form
+        $old = $user;
+        if ((int)$user['role'] === 1) {
+            $profile = (new GuideProfile())->firstWhere('user_id', $id);
+            if ($profile) {
+                $old = array_merge($user, $profile);
+            }
+        }
+
+        return $this->render('tai-khoan/profile/edit', [
+            'user'   => $user,
+            'old'    => $old,
+            'errors' => []
+        ]);
+    }
+
+    /**
+     * [POST] Xử lý cập nhật hồ sơ cá nhân
+     * Route: /profile/update
+     */
+    public function updateProfile(Request $req): Response
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        $id = $_SESSION['user_id'] ?? 0;
+        if ($id <= 0) return $this->redirect('/login');
+
+        // 1. Lấy dữ liệu (Chỉ cho sửa Tên, Email, SĐT, Mật khẩu, Ảnh, Bio...)
+        // KHÔNG cho phép sửa Username và Role ở đây
+        $data = [
+            'full_name' => trim((string)$req->input('full_name')),
+            'email'     => trim((string)$req->input('email')),
+            'phone'     => trim((string)$req->input('phone')),
+        ];
+
+        // 2. Validate
+        $rules = [
+            'full_name' => 'required|string|max:255',
+            // Check unique email nhưng trừ chính mình ra (tham số $id)
+            'email'     => 'required|email|max:255|unique:users,email,' . $id,
+            'phone'     => 'nullable|integer|max:30',
+        ];
+
+        if ($req->input('password') !== '') {
+            $rules['password'] = 'min:6|confirmed';
+        }
+
+        $messages = [
+            'email.unique'       => 'Email này đã được sử dụng.',
+            'password.confirmed' => 'Mật khẩu xác nhận không khớp.'
+        ];
+
+        $v = new Validator($data, $rules, $messages);
+
+        if ($v->fails()) {
+            // Trả về form với dữ liệu cũ
+            $user = (new User())->find($id);
+            $oldData = $req->all();
+            
+            // Nếu là HDV, merge thêm thông tin profile cũ vào oldData để không bị mất ảnh/bio
+            if ((int)$user['role'] === 1) {
+                $currentProfile = (new GuideProfile())->firstWhere('user_id', $id) ?? [];
+                $oldData = array_merge($currentProfile, $oldData);
+            }
+            
+            return $this->render('tai-khoan/profile/edit', [
+                'errors' => $v->errors(),
+                'old'    => $oldData,
+                'user'   => $user 
+            ]);
+        }
+
+        try {
+            // 3. Cập nhật bảng Users
+            $updateData = $data;
+            if ($req->input('password') !== '') {
+                $updateData['password_hash'] = password_hash($req->input('password'), PASSWORD_BCRYPT);
+            }
+
+            (new User())->update($id, $updateData);
+            
+            // Cập nhật lại tên trong Session (để hiển thị trên Sidebar ngay lập tức)
+            $_SESSION['user_name'] = $data['full_name'];
+
+            // 4. Cập nhật Profile mở rộng (Nếu là HDV)
+            $currentUser = (new User())->find($id);
+            
+            if ((int)$currentUser['role'] === 1) {
+                $profileModel = new GuideProfile();
+                $exists = $profileModel->firstWhere('user_id', $id);
+
+                // Xử lý upload ảnh đại diện
+                $avatarUrl = null;
+                if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+                    $uploadDir = __DIR__ . '/../../public/uploads/users/';
+                    if (!is_dir($uploadDir)) mkdir($uploadDir, 0755, true);
+                    
+                    $ext = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
+                    if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                        $newFileName = "avatar_{$id}_" . time() . ".{$ext}";
+                        if (move_uploaded_file($_FILES['avatar']['tmp_name'], $uploadDir . $newFileName)) {
+                            $avatarUrl = '/uploads/users/' . $newFileName;
+                        }
+                    }
+                }
+
+                $profileData = [
+                    'dob'              => $req->input('dob') ?: null,
+                    'gender'           => $req->input('gender') ?: 'OTHER',
+                    'license_number'   => $req->input('license_number'),
+                    'license_expiry'   => $req->input('license_expiry') ?: null,
+                    'experience_years' => (int)$req->input('experience_years'),
+                    'languages'        => $req->input('languages'),
+                    'bio'              => $req->input('bio'),
+                ];
+
+                if ($avatarUrl) {
+                    $profileData['avatar_url'] = $avatarUrl;
+                }
+
+                if ($exists) {
+                    $profileModel->builder()->where('user_id', $id)->update($profileData);
+                } else {
+                    $profileData['user_id'] = $id;
+                    $profileModel->create($profileData);
+                }
+            }
+
+            $_SESSION['flash_success'] = 'Cập nhật hồ sơ thành công.';
+            return $this->redirect(route('profile.index')); // Chuyển về trang xem hồ sơ
+
+        } catch (\Throwable $e) {
+            return $this->render('tai-khoan/profile/edit', [
+                'errors' => ['general' => ['Lỗi hệ thống: ' . $e->getMessage()]],
+                'old'    => $req->all(),
+                'user'   => (new User())->find($id)
+            ]);
+        }
+    }
+    
 }

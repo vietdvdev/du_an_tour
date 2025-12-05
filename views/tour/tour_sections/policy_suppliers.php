@@ -8,7 +8,8 @@
                 </h3>
             </div>
             <div class="card-body">
-                <form method="POST" action="<?= route('tour.update.policy', ['id' => $tourId]) ?>">
+                <!-- SỬA: Thêm dấu = và đổi $tourId thành $tour['id'] -->
+                <form method="POST" action="<?= route('tour.update.policy', ['id' => $tour['id']]) ?>">
                     
                     <div class="form-group">
                         <label class="text-dark">Quy định Hủy Tour (Cancel Rules)</label>
@@ -34,64 +35,65 @@
     
     <div class="col-md-7">
         
-<?php 
-    // Đảm bảo biến tồn tại để không báo lỗi Undefined variable
-    $allSuppliers = $allSuppliers ?? []; 
-?>
+        <?php 
+            // Đảm bảo biến tồn tại để không báo lỗi Undefined variable
+            $allSuppliers = $allSuppliers ?? []; 
+        ?>
 
-<div class="card shadow-sm mb-3">
-    <div class="card-header bg-success text-white">
-        <h3 class="card-title font-weight-bold">
-            <i class="fas fa-plus-circle mr-1"></i> Thêm Nhà Cung Cấp
-        </h3>
-    </div>
-    
-    <div class="card-body">
-        <form method="POST" action="<?= route('tour.supplier.add', ['id' => $tourId]) ?>">
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group mb-0">
-                        <label for="tour_category" class="form-label font-weight-bold">Chọn Nhà cung cấp <span class="text-danger">*</span></label>
-                        <select  name="supplier_id" class="form-select" required>
-                            <option value="">-- Chọn NCC --</option>
-                            
-                            <?php if (!empty($allSuppliers)): ?>
-                                <?php foreach ($allSuppliers as $sup): ?>
-                                    <option value="<?= $sup['id'] ?>">
-                                        <?= htmlspecialchars($sup['name']) ?> 
-                                        (<?= htmlspecialchars($sup['type'] ?? 'Khác') ?>)
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php else: ?>
-                                <option value="" disabled>Chưa có dữ liệu NCC</option>
-                            <?php endif; ?>
-                            
-                        </select>
-                    </div>
-                </div>
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-success text-white">
+                <h3 class="card-title font-weight-bold">
+                    <i class="fas fa-plus-circle mr-1"></i> Thêm Nhà Cung Cấp
+                </h3>
+            </div>
+            
+            <div class="card-body">
+                <!-- SỬA: Thêm dấu = và đổi $tourId thành $tour['id'] -->
+                <form method="POST" action="<?= route('tour.supplier.add', ['id' => $tour['id']]) ?>">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-0">
+                                <label for="tour_category" class="form-label font-weight-bold">Chọn Nhà cung cấp <span class="text-danger">*</span></label>
+                                <select  name="supplier_id" class="form-select" required>
+                                    <option value="">-- Chọn NCC --</option>
+                                    
+                                    <?php if (!empty($allSuppliers)): ?>
+                                        <?php foreach ($allSuppliers as $sup): ?>
+                                            <option value="<?= $sup['id'] ?>">
+                                                <?= htmlspecialchars($sup['name']) ?> 
+                                                (<?= htmlspecialchars($sup['type'] ?? 'Khác') ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <option value="" disabled>Chưa có dữ liệu NCC</option>
+                                    <?php endif; ?>
+                                    
+                                </select>
+                            </div>
+                        </div>
 
-                <div class="col-md-6">
-                    <div class="form-group mb-0">
-                        <label>Vai trò trong Tour</label>
-                        <div class="input-group">
-                            <input type="text" name="role" class="form-control" 
-                                   placeholder="VD: Xe 29 chỗ, KS Đêm 1..." required>
-                            <div class="input-group-append">
-                                <button type="submit" class="btn btn-success font-weight-bold">
-                                    <i class="fas fa-plus"></i> Thêm
-                                </button>
+                        <div class="col-md-6">
+                            <div class="form-group mb-0">
+                                <label>Vai trò trong Tour</label>
+                                <div class="input-group">
+                                    <input type="text" name="role" class="form-control" 
+                                           placeholder="VD: Xe 29 chỗ, KS Đêm 1..." required>
+                                    <div class="input-group-append">
+                                        <button type="submit" class="btn btn-success font-weight-bold">
+                                            <i class="fas fa-plus"></i> Thêm
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                    
+                    <small class="text-muted mt-2 d-block">
+                        <i class="fas fa-info-circle"></i> Chọn NCC từ danh sách và nhập dịch vụ họ cung cấp cho tour này.
+                    </small>
+                </form>
             </div>
-            
-            <small class="text-muted mt-2 d-block">
-                <i class="fas fa-info-circle"></i> Chọn NCC từ danh sách và nhập dịch vụ họ cung cấp cho tour này.
-            </small>
-        </form>
-    </div>
-</div>
+        </div>
 
         <div class="card shadow-sm">
             <div class="card-header bg-secondary text-white">
@@ -134,7 +136,8 @@
                                     </td>
                                     
                                     <td class="text-center align-middle">
-                                        <form method="POST" action="<?= route('tour.supplier.delete', ['id' => $tourId]) ?>" style="display:inline;">
+                                        <!-- SỬA: Thêm dấu = và đổi $tourId thành $tour['id'] -->
+                                        <form method="POST" action="<?= route('tour.supplier.delete', ['id' => $tour['id']]) ?>" style="display:inline;">
                                             <input type="hidden" name="supplier_id_to_delete" value="<?= $item['supplier_id'] ?>">
                                             
                                             <button type="submit" class="btn btn-sm btn-danger" 

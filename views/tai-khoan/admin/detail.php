@@ -13,9 +13,11 @@
                 </div>
                 <div class="col-sm-6 text-right">
                     <!-- Nút quay lại -->
-                    <a href="<?= $user['role'] == 1 ? route('guide.index') : route('admin.index') ?>" class="btn btn-default">
+                    <!-- SỬA LỖI TẠI ĐÂY: Đổi 'guide.index' thành 'admin.guide.index' -->
+                    <a href="<?= $user['role'] == 1 ? route('admin.guide.index') : route('admin.index') ?>" class="btn btn-default">
                         <i class="fas fa-arrow-left"></i> Quay lại
                     </a>
+                    
                     <!-- Nút chuyển sang trang Sửa -->
                     <a href="<?= route('admin.edit', ['id' => $user['id']]) ?>" class="btn btn-warning">
                         <i class="fas fa-edit"></i> Chỉnh sửa
@@ -38,10 +40,10 @@
                                 <?php 
                                     // Xử lý ảnh đại diện
                                     $avatar = $profile['avatar_url'] ?? '/assets/img/user-default.png';
-                                    if (empty($avatar)) $avatar = '/assets/img/user-default.png'; // Link ảnh mặc định nếu bạn có
+                                    if (empty($avatar)) $avatar = '/assets/img/user-default.png';
                                 ?>
                                 <img class="profile-user-img img-fluid img-circle" 
-                                    src="<?= public_url($avatar) ?>" 
+                                     src="<?= public_url($avatar) ?>" 
                                      alt="User profile picture"
                                      style="width: 128px; height: 128px; object-fit: cover;">
                             </div>

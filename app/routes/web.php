@@ -12,6 +12,7 @@ use App\Controllers\BookingController;
 use App\Controllers\PaymentController;
 use App\Controllers\AssignmentController;
 use App\Controllers\BookingFinanceController;
+use App\Controllers\AttendanceController;
 use App\Controllers\GuideController;
 
 // Import Middleware
@@ -26,8 +27,8 @@ use App\Middleware\GuideMiddleware;
 // ==============================================================================
 
 // Trang chủ
-$router->get('/', [HomeController::class, 'index'])->name('home.index');
 
+$router->get('/', [HomeController::class, 'index'])->name('home.index');
 // Đăng nhập / Đăng xuất
 $router->get('/login', [AuthController::class, 'showLogin'])->name('login');
 $router->post('/login', [AuthController::class, 'login'])->name('login.post');
@@ -40,8 +41,9 @@ $router->get('/logout', [AuthController::class, 'logout'])->name('logout');
 // 2. NHÓM ADMIN (YÊU CẦU ĐĂNG NHẬP + QUYỀN ADMIN)
 // ==============================================================================
 $router->group(['middleware' => [AuthMiddleware::class, AdminMiddleware::class]], function (Router $r) {
-
+    
     // --- QUẢN LÝ TÀI KHOẢN (USER & HDV) ---
+
     $r->get('/list-admin', [UserController::class, 'indexAdmin'])->name('admin.index');
     $r->get('/list-guide', [UserController::class, 'indexGuide'])->name('admin.guide.index');
     
@@ -154,8 +156,30 @@ $router->group(['middleware' => [AuthMiddleware::class, AdminMiddleware::class]]
 // ==============================================================================
 $router->group(['middleware' => [AuthMiddleware::class, GuideMiddleware::class]], function (Router $r) {
     
-    // Dashboard dành riêng cho HDV
-    $r->get('/guide/dashboard', [GuideController::class, 'index'])->name('guide.index');
+    // Dashboard
+    $r->get('/guide/dashboard', [GuideController::class, 'index'])->name('guide.dashboard');
 
-    // Các route khác của HDV...
+    // Lịch tour
+    $r->get('/guide/my-tours', [GuideController::class, 'myTours'])->name('guide.my_tours');
+
+    // 2. THÊM 2 DÒNG NÀY ĐỂ CHỨC NĂNG ĐIỂM DANH HOẠT ĐỘNG
+    // Màn hình danh sách khách
+    $r->get('/guide/attendance', [AttendanceController::class, 'index'])->name('guide.attendance');
+    
+    // Xử lý check-in (Ajax)
+    $r->post('/guide/attendance/check', [AttendanceController::class, 'checkIn'])->name('guide.attendance.check');
+
+});
+
+
+$router->group(['middleware' => [AuthMiddleware::class]], function (Router $r) {
+    
+    // Xem hồ sơ (Link này đã có trong Sidebar)
+    $r->get('/profile', [UserController::class, 'profile'])->name('profile.index');
+
+    // Form sửa thông tin cá nhân
+    $r->get('/profile/edit', [UserController::class, 'editProfile'])->name('profile.edit');
+
+    // Xử lý cập nhật (Chỉ update bảng users)
+    $r->post('/profile/update', [UserController::class, 'updateProfile'])->name('profile.update');
 });

@@ -1,115 +1,79 @@
-<?php
-// File này chứa form để chỉnh sửa thông tin cơ bản của Tour.
-// Biến $tour (dữ liệu tour hiện tại) và $categories (danh sách danh mục) được giả định đã có sẵn.
-
-$tourData = $tour ?? [];
-$categoriesList = $categories ?? [];
-?>
-
-<form action="<?= route('tour.update', ['id' => $tourData['id']]) ?>" method="POST">
-    <!-- Trường ẩn để gửi ID của Tour -->
-    <input type="hidden" name="tour_id" value="<?= htmlspecialchars($tourData['id'] ?? '') ?>">
-    
-    <div class="row g-3">
-        <!-- 1. MÃ TOUR (READ-ONLY) -->
+<form action="<?= route('tour.update', ['id' => $tour['id']]) ?>" method="POST">
+    <div class="row">
+        <!-- Tên Tour -->
         <div class="col-md-6">
-            <label for="tour_code" class="form-label font-weight-bold">Mã Tour</label>
-            <!-- Thêm thuộc tính readonly để ngăn chỉnh sửa -->
-            <input 
-                type="text" 
-                class="form-control" 
-                id="tour_code" 
-                name="code" 
-                value="<?= htmlspecialchars($tourData['code'] ?? 'T0000') ?>" 
-                readonly 
-                style="background-color: #f0f0f0;"
-            >
-            <div class="form-text">Mã tour không thể thay đổi sau khi được tạo.</div>
+            <div class="form-group">
+                <label>Tên Tour <span class="text-danger">*</span></label>
+                <input type="text" name="name" class="form-control" value="<?= htmlspecialchars($tour['name']) ?>" required>
+            </div>
         </div>
         
-        <!-- 2. TRẠNG THÁI TOUR (CÓ THỂ CHỈNH SỬA) -->
-        <div class="col-md-6">
-            <label for="tour_state" class="form-label font-weight-bold">Trạng Thái</label>
-            <select class="form-select" id="tour_state" name="state" required>
-                <!-- Giả định các trạng thái có thể là 'Draft', 'Published', 'Archived' -->
-                <?php $currentState = $tourData['state'] ?? 'Draft'; ?>
-                <option value="Draft" <?= $currentState === 'Draft' ? 'selected' : '' ?>>Nháp</option>
-                <option value="Published" <?= $currentState === 'Published' ? 'selected' : '' ?>>Đã Xuất Bản</option>
-                <option value="Archived" <?= $currentState === 'Archived' ? 'selected' : '' ?>>Lưu Trữ</option>
-            </select>
-        </div>
-
-        <!-- 3. TÊN TOUR (CÓ THỂ CHỈNH SỬA) -->
-        <div class="col-12">
-            <label for="tour_name" class="form-label font-weight-bold">Tên Tour</label>
-            <input 
-                type="text" 
-                class="form-control" 
-                id="tour_name" 
-                name="name" 
-                value="<?= htmlspecialchars($tourData['name'] ?? '') ?>" 
-                placeholder="Nhập tên tour du lịch..."
-                required
-            >
-        </div>
-
-        <!-- 4. DANH MỤC TOUR (CÓ THỂ CHỈNH SỬA) -->
-        <div class="col-12">
-            <label for="tour_category" class="form-label font-weight-bold">Danh Mục Tour</label>
-            <select class="form-select" id="tour_category" name="category_id" required>
-                <option value="">-- Chọn Danh Mục --</option>
-                <?php $currentCategoryId = (int)($tourData['category_id'] ?? 0); ?>
-                <?php foreach ($categoriesList as $category): ?>
-                    <option 
-                        value="<?= htmlspecialchars($category['id']) ?>" 
-                        <?= $currentCategoryId === (int)$category['id'] ? 'selected' : '' ?>
-                    >
-                        <?= htmlspecialchars($category['name']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-
-        <!-- 5. MÔ TẢ TOUR (CÓ THỂ CHỈNH SỬA) -->
-        <div class="col-12">
-            <label for="tour_description" class="form-label font-weight-bold">Mô tả Tour</label>
-            <textarea 
-                class="form-control" 
-                id="tour_description" 
-                name="description" 
-                rows="5" 
-                placeholder="Mô tả chi tiết về tour du lịch..."
-            ><?= htmlspecialchars($tourData['description'] ?? '') ?></textarea>
+        <!-- Mã Tour (Read-only) -->
+        <div class="col-md-3">
+            <div class="form-group">
+                <label>Mã Tour <span class="text-danger">*</span></label>
+                <input type="text" name="code" class="form-control" value="<?= htmlspecialchars($tour['code']) ?>" readonly style="background-color: #f4f6f9;">
+                <small class="text-muted">Mã tour cố định.</small>
+            </div>
         </div>
         
-        <!-- NÚT LƯU -->
-        <div class="col-12 mt-4 text-center">
-            <button type="submit" class="btn btn-primary btn-lg px-5">
-                <i class="fas fa-save"></i> Lưu Thay Đổi
+        <!-- Danh mục -->
+        <div class="col-md-3">
+            <div class="form-group">
+                <label>Danh mục</label>
+                <select name="category_id" class="form-control" required>
+                    <option value="">-- Chọn danh mục --</option>
+                    <?php foreach ($categories as $cat): ?>
+                        <option value="<?= $cat['id'] ?>" <?= $tour['category_id'] == $cat['id'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($cat['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mô tả -->
+    <div class="form-group">
+        <label>Mô tả ngắn</label>
+        <textarea name="description" class="form-control" rows="3"><?= htmlspecialchars($tour['description'] ?? '') ?></textarea>
+    </div>
+
+    <div class="row">
+        <!-- TRẠNG THÁI (ĐÃ SỬA: Chỉ xem, không sửa) -->
+        <div class="col-md-6">
+            <div class="form-group">
+                <label>Trạng thái hiện tại</label>
+                <?php 
+                    // Xác định nhãn hiển thị
+                    $currentState = $tour['state'] ?? 'DRAFT';
+                    $stateLabel = 'Bản nháp (Draft)';
+                    $inputClass = 'text-secondary'; // Màu chữ xám
+
+                    if ($currentState === 'PUBLISHED') {
+                        $stateLabel = 'Đã công bố (Published)';
+                        $inputClass = 'text-success font-weight-bold'; // Màu chữ xanh đậm
+                    }
+                ?>
+                
+                <!-- Input hiển thị (Readonly) -->
+                <input type="text" class="form-control <?= $inputClass ?>" value="<?= $stateLabel ?>" readonly style="background-color: #f4f6f9;">
+                
+                <!-- Input ẩn (Hidden) để gửi giá trị state về Controller khi bấm Lưu -->
+                <input type="hidden" name="state" value="<?= $currentState ?>">
+                
+                <small class="text-muted">
+                    <i class="fas fa-info-circle"></i> 
+                    Để thay đổi trạng thái, hãy sử dụng nút <b>"Công bố"</b> ở góc trên màn hình.
+                </small>
+            </div>
+        </div>
+
+        <!-- Nút Lưu -->
+        <div class="col-md-6 text-right d-flex align-items-end justify-content-end pb-3">
+            <button type="submit" class="btn btn-primary font-weight-bold px-4">
+                <i class="fas fa-save"></i> Lưu thông tin chung
             </button>
         </div>
     </div>
 </form>
-
-<style>
-/* Tùy chỉnh nhỏ để mô phỏng styling của form */
-.form-label {
-    margin-bottom: 0.5rem;
-    display: block;
-}
-.form-control, .form-select {
-    padding: 0.75rem 1rem;
-    border: 1px solid #ced4da;
-    border-radius: 0.5rem;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-.btn-primary {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-    color: white;
-    border-radius: 0.5rem;
-}
-.font-weight-bold {
-    font-weight: 600;
-}
-</style>
