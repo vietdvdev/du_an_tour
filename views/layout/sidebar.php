@@ -106,6 +106,13 @@
                         </a>
                     </li>
 
+                    <li class="nav-item">
+                        <a href="<?= route('report.revenue') ?>" class="nav-link">
+                            <i class="nav-icon fas fa-chart-line"></i> 
+                            <p>Doanh thu và thanh toán</p>
+                        </a>
+                    </li>
+
                     <li class="nav-header font-weight-bold">HỆ THỐNG</li>
 
                     <li class="nav-item has-treeview">

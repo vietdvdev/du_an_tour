@@ -15,7 +15,7 @@ use App\Controllers\BookingFinanceController;
 use App\Controllers\TourLogController;
 use App\Controllers\AttendanceController;
 use App\Controllers\GuideController;
-
+use App\Controllers\ReportController;
 // Import Middleware
 use App\Middleware\AuthMiddleware;
 use App\Middleware\AdminMiddleware;
@@ -148,6 +148,8 @@ $router->group(['middleware' => [AuthMiddleware::class, AdminMiddleware::class]]
     $r->get('/payment', [PaymentController::class, 'index'])->name('payment.index');
     $r->get('/payment/create', [PaymentController::class, 'create'])->name('payment.create');
     $r->post('/payment/store', [PaymentController::class, 'store'])->name('payment.store');
+    $r->get('/report/revenue', [ReportController::class, 'revenue'])->name('report.revenue');
+
 
 }); // <--- ĐÓNG NHÓM ADMIN (QUAN TRỌNG)
 
