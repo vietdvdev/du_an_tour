@@ -1,6 +1,7 @@
 <?php
 namespace App\Core;
 
+
 class DB
 {
     public static function table(string $table): QueryBuilder
@@ -8,8 +9,19 @@ class DB
         return (new QueryBuilder(Database::pdo()))->table($table);
     }
 
+
     public static function query(): QueryBuilder
     {
         return new QueryBuilder(Database::pdo());
     }
+
+
+       
+    public static function getPdo()
+    {
+        return Database::pdo();
+    }
 }
+
+
+

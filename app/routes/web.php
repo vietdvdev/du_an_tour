@@ -16,6 +16,7 @@ use App\Controllers\TourLogController;
 use App\Controllers\AttendanceController;
 use App\Controllers\GuideController;
 use App\Controllers\ReportController;
+use App\Controllers\CustomTourBookingController;
 // Import Middleware
 use App\Middleware\AuthMiddleware;
 use App\Middleware\AdminMiddleware;
@@ -150,7 +151,11 @@ $router->group(['middleware' => [AuthMiddleware::class, AdminMiddleware::class]]
     $r->post('/payment/store', [PaymentController::class, 'store'])->name('payment.store');
     $r->get('/report/revenue', [ReportController::class, 'revenue'])->name('report.revenue');
 
-
+    $r->get('/booking/custom/create', [CustomTourBookingController::class, 'create'])->name('booking.custom.create');
+    $r->post('/booking/custom/store', [CustomTourBookingController::class, 'store'])->name('booking.custom.store');
+    // Bước 2: Nhập lịch trình
+    $r->get('/booking/custom/itinerary/{id}', [CustomTourBookingController::class, 'editItinerary'])->name('booking.custom.itinerary');
+    $r->post('/booking/custom/itinerary/{id}', [CustomTourBookingController::class, 'updateItinerary'])->name('booking.custom.update_itinerary');
 }); // <--- ĐÓNG NHÓM ADMIN (QUAN TRỌNG)
 
 

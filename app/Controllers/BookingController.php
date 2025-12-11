@@ -18,22 +18,34 @@ class BookingController extends BaseController
 {
     // [GET] Danh sách Booking
     public function index(Request $req): Response
-    {
-        $bookings = (new Booking())->getAllWithDetails();
-        return $this->render('booking/index', [
-            'title' => 'Quản lý Đặt chỗ',
-            'bookings' => $bookings
-        ]);
-    }
+        {
+            // 1. Lấy tham số từ URL
+            $type = $_GET['type'] ?? 'all';
+            $time = $_GET['time'] ?? 'all';
+
+            // 2. Gọi hàm vừa viết trong Model
+            $bookingModel = new Booking();
+            $bookings = $bookingModel->getFilteredBookings($type, $time);
+         
+            // 3. Render View
+            return $this->render('booking/index', [
+                'title' => 'Quản lý Đặt chỗ',
+                'bookings' => $bookings,
+                'filterType' => $type, // Truyền lại để view hiển thị trạng thái active
+                'filterTime' => $time
+            ]);
+        }
 
     // [GET] Xem chi tiết Booking
+// [GET] Xem chi tiết Booking (Hoàn chỉnh)
     public function show(Request $req): Response
     {
         $id = (int)($req->params['id'] ?? 0);
         
-        // 1. Lấy thông tin Booking
+        // 1. Lấy thông tin Booking + Tour Info
         $booking = (new Booking())->builder()
-            ->select('booking.*, departure.start_date, departure.end_date, tour.name as tour_name, tour.code as tour_code')
+            // [QUAN TRỌNG] Thêm tour.is_custom để giao diện biết đây là tour yêu cầu
+            ->select('booking.*, departure.start_date, departure.end_date, tour.name as tour_name, tour.code as tour_code, tour.is_custom')
             ->join('departure', 'departure.id', '=', 'booking.departure_id')
             ->join('tour', 'tour.id', '=', 'departure.tour_id')
             ->where('booking.id', $id)
@@ -44,29 +56,32 @@ class BookingController extends BaseController
             return $this->redirect(route('booking.index'));
         }
 
-        // 2. Lấy dữ liệu các bảng con (Chuẩn bị sẵn cho View)
+        // 2. Lấy dữ liệu các bảng con
         $travelers = (new Traveler())->where('booking_id', $id);
-        $services  = (new BookingService())->where('booking_id', $id);
-        $payments  = (new Payment())->where('booking_id', $id);
         
-        // Lấy lịch sử (Nếu chưa có model BookingLog thì bỏ dòng này hoặc tạo Model như hướng dẫn trước)
+        // Dùng try-catch hoặc kiểm tra class để tránh lỗi nếu chưa tạo Model
+        $services = class_exists(BookingService::class) ? (new BookingService())->where('booking_id', $id) : [];
+        $payments = class_exists(Payment::class) ? (new Payment())->where('booking_id', $id) : [];
+        
+        // 3. Lấy lịch sử thay đổi
         $logs = [];
         try {
-            $logs = (new \App\Models\BookingLog())
-                    ->builder()
-                    ->where('booking_id', $id)
-                    ->orderBy('created_at', 'DESC')
-                    ->get();
+            if (class_exists(BookingLog::class)) {
+                $logs = (new BookingLog())->builder()
+                        ->where('booking_id', $id)
+                        ->orderBy('created_at', 'DESC')
+                        ->get();
+            }
         } catch (\Throwable $e) {
-            // Bỏ qua nếu chưa tạo bảng log
+            // Bỏ qua nếu chưa có bảng log
         }
 
         return $this->render('booking/show', [
             'booking'   => $booking,
             'travelers' => $travelers,
-            'services'  => $services,  // Truyền biến này sang View
-            'payments'  => $payments,  // Truyền biến này sang View
-            'logs'      => $logs,      // Truyền biến này sang View
+            'services'  => $services,
+            'payments'  => $payments,
+            'logs'      => $logs,
             'title'     => 'Chi tiết Booking ' . $booking['code']
         ]);
     }
@@ -98,14 +113,15 @@ class BookingController extends BaseController
     {
         // Lấy danh sách đợt khởi hành hợp lệ
         $departures = (new Departure())->builder()
-            ->select('departure.*, tour.code as tour_code, tour.name as tour_name, tour.state as tour_state')
+            ->select('departure.*, tour.code as tour_code, tour.name as tour_name, tour.state as tour_state, tour.is_custom as tour_custom ')
             ->join('tour', 'tour.id', '=', 'departure.tour_id')
             ->where('departure.status', 'OPEN')       // Lịch đang mở
-            ->where('tour.state', 'PUBLISHED')        // Tour đã công bố
+            ->where('tour.state', 'PUBLISHED') 
+            ->where('tour.is_custom', 0)       // Tour đã công bố
             ->where('departure.start_date', '>=', date('Y-m-d')) // Chưa quá hạn
             ->orderBy('departure.start_date', 'ASC')
-            ->get();
-
+            ->get();           
+        // dd($departures);
         return $this->render('booking/create', [
             'departures' => $departures,
             'errors'     => [],
@@ -319,7 +335,118 @@ class BookingController extends BaseController
         return $this->redirect(route('booking.show', ['id' => $id]));
     }
 
+    //    * [POST] Thêm khách lẻ vào Booking (Hỗ trợ cộng tiền nếu là Tour Custom)
+    //      */
 
+  /**
+     * [POST] Thêm khách lẻ vào Booking
+     * Hỗ trợ tính toán chi phí phát sinh cho Tour thiết kế riêng
+     */
+    public function addTraveler(Request $req): Response
+    {
+        if (session_status() === PHP_SESSION_NONE) session_start();
+        $bookingId = (int)$req->params['id'];
 
+        // 1. Lấy dữ liệu từ Form
+        $fullName = trim((string)$req->input('full_name'));
+        $gender   = $req->input('gender');
+        $dob      = $req->input('dob'); // Y-m-d
+        $note     = trim((string)$req->input('note'));
+        
+        // Giá phát sinh nhập tay (Chỉ dùng cho Custom Tour)
+        $manualExtraPrice = (float)str_replace(',', '', $req->input('extra_price') ?? 0);
+
+        // 2. Validate
+        if (empty($fullName)) {
+            $_SESSION['flash_error'] = "Vui lòng nhập họ tên khách.";
+            return $this->redirect(route('booking.show', ['id' => $bookingId]));
+        }
+
+        try {
+            $bookingModel = new Booking();
+            // Lấy thông tin Booking + Tour + Departure để tính giá
+            $booking = $bookingModel->builder()
+                ->select('booking.*, tour.is_custom, tour.id as tour_id, departure.start_date')
+                ->join('departure', 'departure.id', '=', 'booking.departure_id')
+                ->join('tour', 'tour.id', '=', 'departure.tour_id')
+                ->where('booking.id', $bookingId)
+                ->first();
+
+            if (!$booking) {
+                $_SESSION['flash_error'] = "Không tìm thấy booking.";
+                return $this->redirect(route('booking.index'));
+            }
+
+            // A. Thêm khách vào bảng traveler
+            (new Traveler())->create([
+                'booking_id' => $bookingId,
+                'full_name'  => $fullName,
+                'gender'     => $gender,
+                'dob'        => !empty($dob) ? $dob : null,
+                'note'       => $note
+            ]);
+
+            // B. Tính toán số tiền cần cộng thêm
+            $priceToAdd = 0;
+            $msgMoney = "";
+
+            if ($booking['is_custom'] == 1) {
+                // TRƯỜNG HỢP 1: TOUR CUSTOM -> Dùng giá nhập tay
+                $priceToAdd = $manualExtraPrice;
+            } else {
+                // TRƯỜNG HỢP 2: TOUR HỆ THỐNG -> Tự tính theo bảng giá
+                $paxType = 'ADULT'; // Mặc định
+                
+                // Tính tuổi
+                if (!empty($dob)) {
+                    $age = $this->calculateAge($dob, $booking['start_date']);
+                    if ($age < 2) $paxType = 'INFANT';
+                    elseif ($age < 12) $paxType = 'CHILD';
+                }
+
+                // Tra cứu giá trong bảng tour_price
+                // Lưu ý: Logic này giả định bảng giá áp dụng cho mọi thời điểm (như chúng ta đã sửa ở bài trước)
+                // Hoặc bạn có thể thêm where effective_date nếu muốn chặt chẽ
+                $priceRecord = (new TourPrice())->builder()
+                    ->where('tour_id', $booking['tour_id'])
+                    ->where('pax_type', $paxType)
+                    ->first();
+
+                if ($priceRecord) {
+                    $priceToAdd = (float)$priceRecord['base_price'];
+                } else {
+                    // Nếu không tìm thấy giá trẻ em, thử tìm giá người lớn
+                    $fallbackPrice = (new TourPrice())->builder()
+                        ->where('tour_id', $booking['tour_id'])
+                        ->where('pax_type', 'ADULT')
+                        ->first();
+                    $priceToAdd = $fallbackPrice ? (float)$fallbackPrice['base_price'] : 0;
+                }
+            }
+
+            // C. Cập nhật Booking (Pax & Total)
+            $newPaxCount = $booking['pax_count'] + 1;
+            $newTotalAmount = $booking['total_amount'] + $priceToAdd;
+
+            $bookingModel->update($bookingId, [
+                'pax_count'    => $newPaxCount,
+                'total_amount' => $newTotalAmount
+            ]);
+
+            // Thông báo kết quả
+            if ($priceToAdd > 0) {
+                $msgMoney = " Đã cộng thêm <b>" . number_format($priceToAdd) . " đ</b> vào đơn hàng.";
+            } else {
+                $msgMoney = " Không phát sinh thêm chi phí.";
+            }
+
+            $_SESSION['flash_success'] = "Đã thêm khách <b>$fullName</b> thành công." . $msgMoney;
+
+        } catch (\Throwable $e) {
+            $_SESSION['flash_error'] = "Lỗi hệ thống: " . $e->getMessage();
+        }
+
+        return $this->redirect(route('booking.show', ['id' => $bookingId]));
+    }
 
 }
