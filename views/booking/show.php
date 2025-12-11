@@ -65,18 +65,36 @@
 <!-- SCRIPT XỬ LÝ TAB KHI CÓ URL HASH -->
 <script>
 $(document).ready(function() {
+    // Nếu URL có hash, set tab active theo hash
     var hash = window.location.hash;
-    if (hash) {
-        var link = $('.nav-tabs a[href="' + hash + '"]');
-        if (link.length > 0) {
-            $('.nav-link').removeClass('active');
-            $('.tab-pane').removeClass('show active');
-            link.addClass('active');
-            $(hash).addClass('show active');
+    if (hash && hash.startsWith('#content-')) {
+        // Tìm link có href bằng hash
+        var $tabLink = $('.nav-tabs a[href="' + hash + '"]');
+        if ($tabLink.length > 0) {
+            // Sử dụng Bootstrap API để activate tab
+            $tabLink.tab('show');
         }
     }
-    $('.nav-tabs a').on('shown.bs.tab', function (e) {
-        history.pushState(null, null, e.target.hash);
+    
+    // Khi click vào tab, update URL hash
+    $('.nav-tabs a[data-toggle="pill"]').on('click', function(e) {
+        // Lấy target tab pane ID
+        var href = $(this).attr('href');
+        if (href) {
+            // Cập nhật URL với hash mới
+            window.history.pushState(null, null, '#' + $(href).attr('id'));
+        }
+    });
+    
+    // Xử lý khi quay lại/tiến lên (browser back/forward)
+    $(window).on('hashchange', function() {
+        var hash = window.location.hash;
+        if (hash && hash.startsWith('#content-')) {
+            var $tabLink = $('.nav-tabs a[href="' + hash + '"]');
+            if ($tabLink.length > 0) {
+                $tabLink.tab('show');
+            }
+        }
     });
 });
 </script>

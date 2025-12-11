@@ -130,6 +130,7 @@ $router->group(['middleware' => [AuthMiddleware::class, AdminMiddleware::class]]
     $r->get('/booking/show/{id}', [BookingController::class, 'show'])->name('booking.show');
     $r->post('/booking/cancel/{id}', [BookingController::class, 'cancel'])->name('booking.cancel');
     $r->post('/booking/update-status/{id}', [BookingController::class, 'updateStatus'])->name('booking.update.status');
+    $r->post('/booking/traveler/add/{id}', [BookingController::class, 'addTraveler'])->name('booking.traveler.add');
 
     // Tài chính Booking
     $r->post('/booking/service/add/{id}', [BookingFinanceController::class, 'addService'])->name('booking.service.add');
