@@ -2,9 +2,11 @@
 <?php include __DIR__ . '/../layout/navbar.php'; ?>
 <?php include __DIR__ . '/../layout/sidebar.php'; ?>
 
+
 <?php
-// 1. Xác định tab hiện tại từ URL (Mặc định là 'info')
+// 1. Lấy tab hiện tại từ URL (Mặc định là 'info')
 $currentTab = $_GET['tab'] ?? 'info';
+
 
 // 2. Định nghĩa danh sách Tab và File tương ứng
 $tabs = [
@@ -30,10 +32,20 @@ $tabs = [
     ]
 ];
 
+
+// [MỚI] LOGIC ẨN TAB BẢNG GIÁ NẾU LÀ TOUR THEO YÊU CẦU
+// Kiểm tra xem trường 'is_custom' có tồn tại và bằng 1 không
+if (isset($tour['is_custom']) && $tour['is_custom'] == 1) {
+    unset($tabs['price']); // Xóa tab giá khỏi danh sách
+}
+
+
+// Nếu tab trên URL không tồn tại trong danh sách (ví dụ đang ở 'price' mà bị xóa) thì quay về 'info'
 if (!array_key_exists($currentTab, $tabs)) {
     $currentTab = 'info';
 }
 ?>
+
 
 <div class="content-wrapper">
     <!-- Header -->
@@ -43,18 +55,25 @@ if (!array_key_exists($currentTab, $tabs)) {
                 <div class="col-sm-6">
                     <h1>
                         Chỉnh sửa Tour: <span class="text-primary font-weight-bold"><?= htmlspecialchars($tour['code'] ?? 'N/A') ?></span>
+                       
                         <!-- Hiển thị Badge trạng thái -->
                         <?php if(($tour['state'] ?? '') == 'PUBLISHED'): ?>
                             <span class="badge badge-success" style="font-size: 0.5em; vertical-align: middle;">Đang công bố</span>
                         <?php else: ?>
                             <span class="badge badge-secondary" style="font-size: 0.5em; vertical-align: middle;">Bản nháp</span>
                         <?php endif; ?>
+
+
+                        <!-- Hiển thị Badge Tour riêng -->
+                        <?php if(isset($tour['is_custom']) && $tour['is_custom'] == 1): ?>
+                            <span class="badge badge-warning" style="font-size: 0.5em; vertical-align: middle;">Tour theo yêu cầu</span>
+                        <?php endif; ?>
                     </h1>
                     <small class="text-muted"><?= htmlspecialchars($tour['name'] ?? '') ?></small>
                 </div>
                 <div class="col-sm-6 text-right">
-                    
-                    <!-- [MỚI] NÚT CÔNG BỐ TOUR (Chỉ hiện khi đang là DRAFT) -->
+                   
+                    <!-- NÚT CÔNG BỐ TOUR (Chỉ hiện khi đang là DRAFT) -->
                     <?php if (($tour['state'] ?? 'DRAFT') === 'DRAFT'): ?>
                         <form action="<?= route('tour.publish', ['id' => $tour['id']]) ?>" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn công bố Tour này không? Tour sẽ hiển thị công khai.');">
                             <button type="submit" class="btn btn-success mr-2">
@@ -63,10 +82,11 @@ if (!array_key_exists($currentTab, $tabs)) {
                         </form>
                     <?php endif; ?>
 
+
                     <a href="<?= route('tour.index') ?>" class="btn btn-default mr-2">
                         <i class="fas fa-arrow-left"></i> Quay lại
                     </a>
-                    
+                   
                     <a href="<?= route('tour.show', ['id' => $tour['id']]) ?>" class="btn btn-info" target="_blank">
                         <i class="fas fa-eye"></i> Xem chi tiết
                     </a>
@@ -75,16 +95,18 @@ if (!array_key_exists($currentTab, $tabs)) {
         </div>
     </section>
 
+
     <!-- Main Content -->
     <section class="content">
         <div class="container-fluid">
-            
+           
             <?php if (!empty($_SESSION['flash_success'])): ?>
                 <div class="alert alert-success alert-dismissible fade show">
                     <button type="button" class="close" data-dismiss="alert">&times;</button>
                     <?= $_SESSION['flash_success']; unset($_SESSION['flash_success']); ?>
                 </div>
             <?php endif; ?>
+
 
             <?php if (!empty($_SESSION['flash_error'])): ?>
                 <div class="alert alert-danger alert-dismissible fade show">
@@ -93,13 +115,14 @@ if (!array_key_exists($currentTab, $tabs)) {
                 </div>
             <?php endif; ?>
 
+
             <div class="card card-primary card-outline card-outline-tabs">
-                
+               
                 <div class="card-header p-0 border-bottom-0">
                     <ul class="nav nav-tabs">
                         <?php foreach ($tabs as $key => $tabInfo): ?>
                             <li class="nav-item">
-                                <a class="nav-link <?= $currentTab == $key ? 'active' : '' ?>" 
+                                <a class="nav-link <?= $currentTab == $key ? 'active' : '' ?>"
                                    href="<?= route('tour.edit', ['id' => $tour['id']]) ?>?tab=<?= $key ?>">
                                     <i class="<?= $tabInfo['icon'] ?>"></i> <?= $tabInfo['label'] ?>
                                 </a>
@@ -107,11 +130,11 @@ if (!array_key_exists($currentTab, $tabs)) {
                         <?php endforeach; ?>
                     </ul>
                 </div>
-                
+               
                 <div class="card-body">
                     <div class="tab-content">
                         <div class="tab-pane fade show active">
-                            <?php 
+                            <?php
                                 $fileToInclude = __DIR__ . '/tour_sections/' . $tabs[$currentTab]['file'];
                                 if (file_exists($fileToInclude)) {
                                     include $fileToInclude;
@@ -127,4 +150,6 @@ if (!array_key_exists($currentTab, $tabs)) {
     </section>
 </div>
 
+
 <?php include __DIR__ . '/../layout/footer.php'; ?>
+

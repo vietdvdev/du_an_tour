@@ -29,23 +29,40 @@ class TourController extends BaseController
     // =========================================================================
 
     // [GET] Danh sách Tour
+      // [GET] Danh sách Tour
     public function index(Request $req): Response
     {
         $tourModel = new Tour();
         $categoryModel = new Tour_category();
         $categoryTable = $categoryModel->getTable();
 
-        $ListTour = $tourModel->builder()
-            ->select('tour.*', $categoryTable . '.name AS category_name')
-            ->leftJoin($categoryTable, $categoryTable . '.id', '=', 'tour.category_id')
-            ->orderBy('tour.id', 'DESC')
-            ->get();
+        // 1. Khởi tạo Query Builder
+        $query = $tourModel->builder()
+            ->select('tour.*, ' . $categoryTable . '.name AS category_name')
+            ->leftJoin($categoryTable, $categoryTable . '.id', '=', 'tour.category_id');
+
+        // 2. Xử lý Lọc (Filter) theo yêu cầu (type=system/custom/all)
+        $filterType = $req->input('type'); 
+        
+        if ($filterType === 'system') {
+            // Chỉ lấy tour hệ thống (is_custom = 0)
+            $query->where('tour.is_custom', 0);
+        } elseif ($filterType === 'custom') {
+            // Chỉ lấy tour theo yêu cầu (is_custom = 1)
+            $query->where('tour.is_custom', 1);
+        }
+        // Mặc định: lấy hết
+
+        // 3. Sắp xếp: Mới nhất lên đầu (DESC)
+        $ListTour = $query->orderBy('tour.created_at', 'DESC')->get();
 
         return $this->render('tour/index', [
-            'title' => 'Quản lý Tour',
-            'ListTour' => $ListTour
+            'title'      => 'Quản lý Tour',
+            'ListTour'   => $ListTour,
+            'currentType'=> $filterType ?? 'all' // Truyền biến này để View highlight Tab
         ]);
     }
+
 
     // [GET] Form tạo mới
     public function create(Request $req): Response
@@ -373,96 +390,60 @@ class TourController extends BaseController
     // =========================================================================
 
     // [POST] Cập nhật Giá Tour
-// [POST] Cập nhật Giá Tour
-public function updatePrice(Request $req): Response
-{
-    $tourId = (int)($req->params['id'] ?? 0);
-    if ($tourId <= 0) return $this->redirect(route('tour.index'));
+// [POST] Cập nhật Giá Tour (Phiên bản mới: Đơn giản hóa, không chia ngày)
+    public function updatePrice(Request $req): Response
+    {
+        $tourId = (int)($req->params['id'] ?? 0);
+        if ($tourId <= 0) return $this->redirect(route('tour.index'));
 
-    $rawPrices = $req->input('prices');
-    $prices = is_array($rawPrices) ? $rawPrices : [];
+        $rawPrices = $req->input('prices');
+        $prices = is_array($rawPrices) ? $rawPrices : [];
 
-    // 1. Lọc và Validate dữ liệu cơ bản
-    $validPrices = [];
-    foreach ($prices as $index => $p) {
-        // Bỏ qua các dòng dữ liệu rác/thiếu thông tin quan trọng
-        if (empty($p['pax_type']) || empty($p['effective_from']) || empty($p['effective_to'])) {
-            continue; 
-        }
+        try {
+            $priceModel = new TourPrice();
+            
+            // Lấy danh sách ID giá cũ của tour này để so sánh (biết cái nào cần update, cái nào insert)
+            $existingRecords = $priceModel->where('tour_id', $tourId);
+            $existingIds = array_column($existingRecords, 'id');
+            
+            // Duyệt qua dữ liệu từ form gửi lên
+            foreach ($prices as $p) {
+                // Validate cơ bản: Loại khách không được rỗng
+                if (empty($p['pax_type'])) continue;
+                
+                $id = (int)($p['id'] ?? 0);
+                
+                // Chuẩn bị dữ liệu lưu xuống DB
+                // QUAN TRỌNG: Tự động set ngày hiệu lực từ quá khứ xa đến tương lai xa
+                // Để đảm bảo giá này luôn có hiệu lực khi booking tra cứu
+                $saveData = [
+                    'tour_id'        => $tourId,
+                    'pax_type'       => $p['pax_type'],
+                    'base_price'     => (float)($p['base_price'] ?? 0),
+                    'effective_from' => '2000-01-01', // Ngày mặc định
+                    'effective_to'   => '2100-12-31'  // Ngày mặc định
+                ];
 
-        // Validate Logic
-        $basePrice = (float)($p['base_price'] ?? 0);
-        if ($basePrice < 0) {
-            $_SESSION['flash_error'] = "Giá tiền không được âm (Dòng " . ($index + 1) . ")";
-            return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
-        }
-
-        if (strtotime($p['effective_from']) > strtotime($p['effective_to'])) {
-            $_SESSION['flash_error'] = "Ngày kết thúc phải lớn hơn ngày bắt đầu (Dòng " . ($index + 1) . ")";
-            return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
-        }
-
-        $validPrices[] = $p;
-    }
-
-    // 2. Kiểm tra trùng lặp khoảng thời gian (Overlap Check)
-    $count = count($validPrices);
-    for ($i = 0; $i < $count; $i++) {
-        for ($j = $i + 1; $j < $count; $j++) {
-            // So sánh cùng loại khách
-            if ($validPrices[$i]['pax_type'] === $validPrices[$j]['pax_type']) {
-                // Logic giao nhau: StartA <= EndB AND EndA >= StartB
-                if ($validPrices[$i]['effective_from'] <= $validPrices[$j]['effective_to'] &&
-                    $validPrices[$i]['effective_to'] >= $validPrices[$j]['effective_from']
-                ) {
-                    $_SESSION['flash_error'] = "Khoảng thời gian bị trùng lặp cho loại khách: " . $validPrices[$i]['pax_type'];
-                    return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
+                if ($id > 0 && in_array($id, $existingIds)) {
+                    // Nếu ID đã tồn tại -> Update
+                    $priceModel->update($id, $saveData);
+                } else {
+                    // Nếu chưa có ID (hoặc ID=0) -> Create mới
+                    $priceModel->create($saveData);
                 }
             }
+            
+            // (Optional) Có thể thêm logic xóa các ID cũ không còn nằm trong danh sách gửi lên
+            // Tuy nhiên với giao diện cố định 3 dòng (Adult, Child, Infant) thì thường không cần xóa.
+
+            $_SESSION['flash_success'] = "Cập nhật bảng giá thành công.";
+        } catch (\Throwable $e) {
+            error_log("[Price Update Error] " . $e->getMessage());
+            $_SESSION['flash_error'] = "Lỗi hệ thống khi lưu giá.";
         }
+
+        return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
     }
-
-    // 3. Lưu vào DB
-    try {
-        $priceModel = new TourPrice();
-        // Lấy danh sách ID cũ để so sánh xóa
-        $existingRecords = $priceModel->where('tour_id', $tourId);
-        $existingIds = array_column($existingRecords, 'id');
-        $submittedIds = [];
-
-        foreach ($validPrices as $p) {
-            $id = (int)($p['id'] ?? 0);
-            $saveData = [
-                'tour_id'        => $tourId,
-                'pax_type'       => $p['pax_type'],
-                'base_price'     => (float)($p['base_price'] ?? 0),
-                'effective_from' => $p['effective_from'],
-                'effective_to'   => $p['effective_to']
-            ];
-
-            if ($id > 0 && in_array($id, $existingIds)) {
-                $priceModel->update($id, $saveData);
-                $submittedIds[] = $id;
-            } else {
-                $newId = $priceModel->create($saveData);
-                if ($id > 0) $submittedIds[] = $id; // Giữ lại nếu update, create mới thì không cần track ID cũ
-            }
-        }
-
-        // Xóa các giá đã bị remove khỏi giao diện
-        $idsToDelete = array_diff($existingIds, $submittedIds);
-        foreach ($idsToDelete as $delId) {
-            $priceModel->delete($delId);
-        }
-
-        $_SESSION['flash_success'] = "Cập nhật bảng giá thành công.";
-    } catch (\Throwable $e) {
-        error_log("[Price Error] " . $e->getMessage());
-        $_SESSION['flash_error'] = "Lỗi hệ thống khi lưu giá: " . $e->getMessage();
-    }
-
-    return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=price');
-}
 
     // =========================================================================
     // XỬ LÝ ẢNH & CÔNG BỐ (IMAGES & PUBLISH)
