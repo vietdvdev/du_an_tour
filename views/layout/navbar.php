@@ -1,11 +1,12 @@
-<nav class="main-header navbar navbar-expand navbar-primary navbar-dark">
+<!-- Thay đổi class từ navbar-primary navbar-dark thành navbar-white navbar-light -->
+<nav class="main-header navbar navbar-expand navbar-white navbar-light">
     <!-- Left navbar links -->
     <ul class="navbar-nav">
         <li class="nav-item">
             <a class="nav-link" data-widget="pushmenu" href="#" role="button"><i class="fas fa-bars"></i></a>
         </li>
         <li class="nav-item d-none d-sm-inline-block">
-            <a href="<?= route('home.index') ?>" class="nav-link">Website</a>
+            <a href="<?= route('home.index') ?>" class="nav-link font-weight-bold">Trang chủ Website</a>
         </li>
     </ul>
 
@@ -21,9 +22,8 @@
 
         <!-- Logout Button -->
         <li class="nav-item">
-            <!-- SỬA: Thêm đường dẫn route('logout') và bỏ data-widget="fullscreen" -->
-            <a class="nav-link" href="<?= route('logout') ?>" onclick="return confirm('Bạn có chắc chắn muốn đăng xuất?')" role="button">
-                <i class="fas fa-sign-out-alt"></i> Đăng xuất
+            <a class="nav-link text-danger" href="<?= route('logout') ?>" onclick="return confirm('Bạn có chắc chắn muốn đăng xuất?')" role="button">
+                <i class="fas fa-sign-out-alt mr-1"></i> Đăng xuất
             </a>
         </li>
     </ul>

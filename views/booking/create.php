@@ -64,12 +64,24 @@
                     <!-- Cột Phải: Danh sách khách -->
                     <div class="col-md-8">
                         <div class="card card-outline card-primary h-100">
+                            <!-- [CẬP NHẬT] Thêm nút Import Excel vào Header -->
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h3 class="card-title">Danh sách Khách hàng</h3>
-                                <button type="button" class="btn btn-sm btn-primary ml-auto" id="btnAddTraveler">
-                                    <i class="fas fa-user-plus"></i> Thêm khách
-                                </button>
+                                <div class="ml-auto">
+                                    <!-- Input file ẩn để chọn Excel -->
+                                    <input type="file" id="importExcelInput" accept=".xlsx, .xls" style="display: none;" />
+                                    
+                                    <!-- Nút kích hoạt chọn file -->
+                                    <button type="button" class="btn btn-success btn-sm mr-2" onclick="document.getElementById('importExcelInput').click()">
+                                        <i class="fas fa-file-excel"></i> Nhập từ Excel
+                                    </button>
+
+                                    <button type="button" class="btn btn-sm btn-primary" id="btnAddTraveler">
+                                        <i class="fas fa-user-plus"></i> Thêm khách
+                                    </button>
+                                </div>
                             </div>
+                            
                             <div class="card-body table-responsive p-0" style="height: 500px;">
                                 <table class="table table-head-fixed text-nowrap">
                                     <thead>
@@ -103,13 +115,17 @@
 
 <?php include __DIR__ . '/../layout/footer.php'; ?>
 
+<!-- [CẬP NHẬT] Thêm thư viện SheetJS để đọc Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 <script>
     let travelerIndex = 0;
 
-    // Template dòng khách đơn giản (Không có logic tính tuổi phức tạp)
+    // Template dòng khách đơn giản
     function createTravelerRow(index, data = {}) {
         const fullName = data.full_name || '';
         const dob = data.dob || '';
+        const gender = data.gender || 'OTHER'; // Mặc định là Khác nếu không có
         
         return `
             <tr id="row-${index}">
@@ -119,9 +135,9 @@
                 </td>
                 <td>
                     <select name="travelers[${index}][gender]" class="form-control">
-                        <option value="MALE">Nam</option>
-                        <option value="FEMALE">Nữ</option>
-                        <option value="OTHER">Khác</option>
+                        <option value="MALE" ${gender === 'MALE' ? 'selected' : ''}>Nam</option>
+                        <option value="FEMALE" ${gender === 'FEMALE' ? 'selected' : ''}>Nữ</option>
+                        <option value="OTHER" ${gender === 'OTHER' ? 'selected' : ''}>Khác</option>
                     </select>
                 </td>
                 <td>
@@ -136,7 +152,7 @@
         `;
     }
 
-    // Các hàm hỗ trợ thêm/xóa dòng (UI Logic bắt buộc phải có JS để dynamic form hoạt động)
+    // Các hàm hỗ trợ thêm/xóa dòng
     $('#btnAddTraveler').click(function() {
         $('#travelerContainer').append(createTravelerRow(travelerIndex));
         travelerIndex++;
@@ -157,6 +173,99 @@
         $('#paxCountDisplay').text(count);
     }
 
+    // --- [CẬP NHẬT] LOGIC IMPORT EXCEL ---
+    $('#importExcelInput').change(function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            
+            // Lấy sheet đầu tiên
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Chuyển đổi sang JSON
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            if (jsonData.length > 0) {
+                let importedCount = 0;
+                // Lặp qua từng dòng trong Excel
+                jsonData.forEach(row => {
+                    // Mapping cột Excel (Tiếng Việt hoặc Tiếng Anh) sang dữ liệu form
+                    const mappedData = {
+                        full_name: row['Họ tên'] || row['Full Name'] || '', 
+                        
+                        // Convert Giới tính
+                        gender: convertGender(row['Giới tính'] || row['Gender']),
+                        
+                        // Convert Ngày sinh
+                        dob: convertExcelDate(row['Ngày sinh'] || row['DOB'])
+                    };
+
+                    // Chỉ thêm nếu có tên
+                    if(mappedData.full_name) {
+                        $('#travelerContainer').append(createTravelerRow(travelerIndex, mappedData));
+                        travelerIndex++;
+                        importedCount++;
+                    }
+                });
+                
+                updateCount(); // Cập nhật lại số thứ tự và tổng
+                if(importedCount > 0) {
+                    alert(`Đã nhập thành công ${importedCount} khách từ Excel!`);
+                } else {
+                    alert('Không tìm thấy cột "Họ tên" hoặc dữ liệu trong file Excel.');
+                }
+            } else {
+                alert('File Excel không có dữ liệu!');
+            }
+            
+            // Reset input để chọn lại file cũ được nếu muốn
+            $('#importExcelInput').val('');
+        };
+        
+        reader.readAsArrayBuffer(file);
+    });
+
+    // Hàm phụ trợ: Chuyển đổi giới tính từ text sang mã
+    function convertGender(text) {
+        if (!text) return 'OTHER';
+        text = text.toString().toLowerCase().trim();
+        if (text === 'nam' || text === 'male' || text === 'm') return 'MALE';
+        if (text === 'nữ' || text === 'nu' || text === 'female' || text === 'f') return 'FEMALE';
+        return 'OTHER';
+    }
+
+    // Hàm phụ trợ: Chuyển đổi ngày tháng Excel
+    function convertExcelDate(excelDate) {
+        if (!excelDate) return '';
+        
+        // Nếu là text dạng 'YYYY-MM-DD' hoặc 'DD/MM/YYYY'
+        if (typeof excelDate === 'string') {
+            // Nếu chuỗi có dạng DD/MM/YYYY, chuyển thành YYYY-MM-DD
+            if (excelDate.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+                const parts = excelDate.split('/');
+                return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+            return excelDate; 
+        }
+        
+        // Nếu Excel trả về số serial (ví dụ 45260)
+        if (typeof excelDate === 'number') {
+            const date = new Date(Math.round((excelDate - 25569) * 86400 * 1000));
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        
+        return '';
+    }
+
     // Khởi tạo mặc định
     $(document).ready(function() {
         <?php if (!empty($old_travelers)): ?>
@@ -166,7 +275,10 @@
                 travelerIndex++;
             });
         <?php else: ?>
-            $('#btnAddTraveler').click(); // Mặc định thêm 1 dòng
+            // Mặc định thêm 1 dòng trống nếu chưa có khách nào
+            if(travelerIndex === 0) {
+                $('#btnAddTraveler').click();
+            }
         <?php endif; ?>
         updateCount();
     });

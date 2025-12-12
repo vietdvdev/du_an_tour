@@ -140,11 +140,22 @@ unset($_SESSION['old'], $_SESSION['errors']);
                     <!-- CỘT PHẢI: DANH SÁCH KHÁCH -->
                     <div class="col-md-7">
                         <div class="card card-outline card-info h-100">
+                            <!-- [UPDATE] Thêm nút nhập từ Excel vào Header -->
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h3 class="card-title">3. Danh sách Đoàn</h3>
-                                <button type="button" class="btn btn-sm btn-info ml-auto" id="btnAddTraveler">
-                                    <i class="fas fa-user-plus"></i> Thêm khách
-                                </button>
+                                <div class="ml-auto">
+                                    <!-- Input file ẩn -->
+                                    <input type="file" id="importExcelInput" accept=".xlsx, .xls" style="display: none;" />
+                                    
+                                    <!-- Nút Import -->
+                                    <button type="button" class="btn btn-success btn-sm mr-2" onclick="document.getElementById('importExcelInput').click()">
+                                        <i class="fas fa-file-excel"></i> Nhập từ Excel
+                                    </button>
+
+                                    <button type="button" class="btn btn-sm btn-info" id="btnAddTraveler">
+                                        <i class="fas fa-user-plus"></i> Thêm khách
+                                    </button>
+                                </div>
                             </div>
                             <div class="card-body table-responsive p-0" style="height: 500px;">
                                 <table class="table table-head-fixed text-nowrap">
@@ -177,6 +188,8 @@ unset($_SESSION['old'], $_SESSION['errors']);
 
 <?php include __DIR__ . '/../layout/footer.php'; ?>
 
+<!-- [MỚI] Thêm thư viện SheetJS để đọc Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
     // JS kiểm tra nhanh (Client-side validation)
@@ -192,31 +205,41 @@ unset($_SESSION['old'], $_SESSION['errors']);
     });
 
 
-    // ... (Phần script thêm dòng khách giữ nguyên) ...
+    // ... (Phần script thêm dòng khách giữ nguyên và bổ sung logic Excel) ...
     let travelerIndex = 0;
-    function createTravelerRow(index) {
+    
+    // Hàm tạo dòng khách (nhận thêm data để điền nếu có)
+    function createTravelerRow(index, data = {}) {
+        const fullName = data.full_name || '';
+        const dob = data.dob || '';
+        const gender = data.gender || 'OTHER';
+
         return `
             <tr id="row-${index}">
                 <td class="align-middle text-center row-number"></td>
-                <td><input type="text" name="travelers[${index}][full_name]" class="form-control" placeholder="Nhập họ tên" required></td>
+                <td><input type="text" name="travelers[${index}][full_name]" class="form-control" placeholder="Nhập họ tên" required value="${fullName}"></td>
                 <td>
                     <select name="travelers[${index}][gender]" class="form-control">
-                        <option value="MALE">Nam</option>
-                        <option value="FEMALE">Nữ</option>
+                        <option value="MALE" ${gender === 'MALE' ? 'selected' : ''}>Nam</option>
+                        <option value="FEMALE" ${gender === 'FEMALE' ? 'selected' : ''}>Nữ</option>
+                        <option value="OTHER" ${gender === 'OTHER' ? 'selected' : ''}>Khác</option>
                     </select>
                 </td>
-                <td><input type="date" name="travelers[${index}][dob]" class="form-control"></td>
+                <td><input type="date" name="travelers[${index}][dob]" class="form-control" value="${dob}"></td>
                 <td class="text-center align-middle">
                     <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeRow(${index})"><i class="fas fa-times"></i></button>
                 </td>
             </tr>
         `;
     }
+
     $('#btnAddTraveler').click(function() {
         $('#travelerContainer').append(createTravelerRow(travelerIndex++));
         updateCount();
     });
+
     window.removeRow = function(index) { $(`#row-${index}`).remove(); updateCount(); }
+    
     function updateCount() {
         let count = 0;
         $('#travelerContainer tr').each(function(idx) {
@@ -225,6 +248,99 @@ unset($_SESSION['old'], $_SESSION['errors']);
         });
         $('#paxCountDisplay').text(count);
     }
-    $(document).ready(function() { $('#btnAddTraveler').click(); updateCount(); });
-</script>
 
+    // --- [MỚI] LOGIC IMPORT EXCEL ---
+    $('#importExcelInput').change(function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            
+            // Lấy sheet đầu tiên
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Chuyển đổi sang JSON
+            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+            if (jsonData.length > 0) {
+                let importedCount = 0;
+                // Lặp qua từng dòng trong Excel
+                jsonData.forEach(row => {
+                    // Mapping cột Excel sang dữ liệu form
+                    const mappedData = {
+                        full_name: row['Họ tên'] || row['Full Name'] || '', 
+                        gender: convertGender(row['Giới tính'] || row['Gender']),
+                        dob: convertExcelDate(row['Ngày sinh'] || row['DOB'])
+                    };
+
+                    // Chỉ thêm nếu có tên
+                    if(mappedData.full_name) {
+                        $('#travelerContainer').append(createTravelerRow(travelerIndex++, mappedData));
+                        importedCount++;
+                    }
+                });
+                
+                updateCount(); // Cập nhật lại số thứ tự và tổng
+                if(importedCount > 0) {
+                    alert(`Đã nhập thành công ${importedCount} khách từ Excel!`);
+                } else {
+                    alert('Không tìm thấy cột "Họ tên" hoặc dữ liệu hợp lệ trong file Excel.');
+                }
+            } else {
+                alert('File Excel không có dữ liệu!');
+            }
+            
+            // Reset input
+            $('#importExcelInput').val('');
+        };
+        
+        reader.readAsArrayBuffer(file);
+    });
+
+    // Hàm phụ trợ: Chuyển đổi giới tính
+    function convertGender(text) {
+        if (!text) return 'OTHER';
+        text = text.toString().toLowerCase().trim();
+        if (text === 'nam' || text === 'male' || text === 'm') return 'MALE';
+        if (text === 'nữ' || text === 'nu' || text === 'female' || text === 'f') return 'FEMALE';
+        return 'OTHER';
+    }
+
+    // Hàm phụ trợ: Chuyển đổi ngày tháng Excel
+    function convertExcelDate(excelDate) {
+        if (!excelDate) return '';
+        
+        // Nếu là text dạng 'YYYY-MM-DD' hoặc 'DD/MM/YYYY'
+        if (typeof excelDate === 'string') {
+            if (excelDate.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+                const parts = excelDate.split('/');
+                return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+            return excelDate; 
+        }
+        
+        // Nếu Excel trả về số serial
+        if (typeof excelDate === 'number') {
+            const date = new Date(Math.round((excelDate - 25569) * 86400 * 1000));
+            const yyyy = date.getFullYear();
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        
+        return '';
+    }
+
+    $(document).ready(function() { 
+        // Nếu không có dữ liệu cũ, thêm 1 dòng trống
+        if(travelerIndex === 0) {
+            $('#btnAddTraveler').click(); 
+        }
+        updateCount(); 
+    });
+</script>

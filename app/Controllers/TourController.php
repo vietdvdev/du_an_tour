@@ -18,6 +18,7 @@ class TourController extends BaseController
 {
     /**
      * Helper: Lấy danh sách tất cả các Danh mục Tour đang hoạt động
+     * Dùng để đổ dữ liệu vào các thẻ <select> trong View
      */
     private function getAvailableCategories(): array
     {
@@ -28,20 +29,22 @@ class TourController extends BaseController
     // CRUD CƠ BẢN (INDEX, SHOW, CREATE, STORE, EDIT, UPDATE, DELETE)
     // =========================================================================
 
-    // [GET] Danh sách Tour
-      // [GET] Danh sách Tour
+    /**
+     * [GET] Hiển thị danh sách Tour
+     * Xử lý: Join bảng category, lọc theo loại tour (System/Custom), sắp xếp mới nhất.
+     */
     public function index(Request $req): Response
     {
         $tourModel = new Tour();
         $categoryModel = new Tour_category();
         $categoryTable = $categoryModel->getTable();
 
-        // 1. Khởi tạo Query Builder
+        // 1. Khởi tạo Query Builder và Join bảng Danh mục để lấy tên danh mục
         $query = $tourModel->builder()
             ->select('tour.*, ' . $categoryTable . '.name AS category_name')
             ->leftJoin($categoryTable, $categoryTable . '.id', '=', 'tour.category_id');
 
-        // 2. Xử lý Lọc (Filter) theo yêu cầu (type=system/custom/all)
+        // 2. Xử lý Lọc (Filter) theo tham số 'type' từ URL
         $filterType = $req->input('type'); 
         
         if ($filterType === 'system') {
@@ -51,9 +54,9 @@ class TourController extends BaseController
             // Chỉ lấy tour theo yêu cầu (is_custom = 1)
             $query->where('tour.is_custom', 1);
         }
-        // Mặc định: lấy hết
+        // Mặc định: lấy hết nếu không có type
 
-        // 3. Sắp xếp: Mới nhất lên đầu (DESC)
+        // 3. Sắp xếp và lấy dữ liệu: Mới nhất lên đầu (DESC)
         $ListTour = $query->orderBy('tour.created_at', 'DESC')->get();
 
         return $this->render('tour/index', [
@@ -64,21 +67,27 @@ class TourController extends BaseController
     }
 
 
-    // [GET] Form tạo mới
+    /**
+     * [GET] Hiển thị form tạo mới Tour
+     */
     public function create(Request $req): Response
     {
         return $this->render('tour/create', [
-            'categories' => $this->getAvailableCategories(),
+            'categories' => $this->getAvailableCategories(), // Lấy danh mục để chọn
             'errors' => [],
             'old' => []
         ]);
     }
 
-    // [POST] Lưu mới Tour
+    /**
+     * [POST] Xử lý lưu Tour mới vào Database
+     * Xử lý: Validate dữ liệu -> Insert DB -> Chuyển hướng sang trang Edit để nhập chi tiết.
+     */
     public function store(Request $req): Response
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
 
+        // 1. Lấy dữ liệu từ form
         $data = [
             'code'          => trim((string)$req->input('code')),
             'name'          => trim((string)$req->input('name')),
@@ -86,6 +95,7 @@ class TourController extends BaseController
             'description'   => trim((string)$req->input('description')),
         ];
 
+        // 2. Định nghĩa luật Validate
         $rules = [
             'code'          => 'required|max:50|unique:tour,code',
             'name'          => 'required|max:255',
@@ -103,6 +113,7 @@ class TourController extends BaseController
 
         $v = new Validator($data, $rules, $messages);
 
+        // 3. Nếu Validate lỗi -> Trả về form cũ kèm lỗi
         if ($v->fails()) {
             return $this->render('tour/create', [
                 'categories' => $this->getAvailableCategories(),
@@ -112,6 +123,7 @@ class TourController extends BaseController
         }
 
         try {
+            // 4. Chuẩn bị dữ liệu Insert (Mặc định DRAFT và Active)
             $insertData = [
                 'code'          => $data['code'],
                 'name'          => $data['name'],
@@ -121,9 +133,12 @@ class TourController extends BaseController
                 'is_active'     => true,
             ];
 
+            // 5. Thực hiện tạo mới và lấy ID vừa tạo
             $newTourId = (new Tour())->create($insertData);
 
             $_SESSION['flash_success'] = "Tạo Tour <strong>{$data['name']}</strong> thành công. Tiếp tục cấu hình chi tiết.";
+            
+            // 6. Chuyển hướng sang trang Chỉnh sửa để nhập Lịch trình, Giá...
             return $this->redirect(route('tour.edit', ['id' => $newTourId]));
         } catch (\Throwable $e) {
             error_log("[Tour.store] Lỗi DB: " . $e->getMessage());
@@ -136,7 +151,10 @@ class TourController extends BaseController
         }
     }
 
-    // [GET] Xem chi tiết (Read-only)
+    /**
+     * [GET] Xem chi tiết Tour (Chế độ Read-only)
+     * Lấy toàn bộ thông tin liên quan (Lịch trình, Giá, Ảnh, NCC...)
+     */
     public function show(Request $req): Response
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -148,6 +166,7 @@ class TourController extends BaseController
             return $this->redirect(route('tour.index'));
         }
 
+        // Load tất cả các quan hệ để hiển thị
         return $this->render('tour/show', [
             'tour'      => $tour,
             'itinerary' => (new TourItinerary())->where('tour_id', $id),
@@ -158,7 +177,10 @@ class TourController extends BaseController
         ]);
     }
 
-    // [GET] Form chỉnh sửa (Edit)
+    /**
+     * [GET] Form chỉnh sửa Tour (Edit)
+     * Load toàn bộ dữ liệu hiện có để hiển thị lên các Tab chỉnh sửa.
+     */
     public function edit(Request $req): Response
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -172,6 +194,13 @@ class TourController extends BaseController
 
         $allSuppliers = (new Supplier())->all();
 
+        // Query phức tạp để lấy danh sách NCC đã gán kèm thông tin chi tiết
+        $assignedSuppliers = (new TourSupplier())->builder()
+            ->select('tour_supplier.*, supplier.name as supplier_name, supplier.type as supplier_type')
+            ->join('supplier', 'supplier.id', '=', 'tour_supplier.supplier_id')
+            ->where('tour_supplier.tour_id', $id)
+            ->get();
+
         return $this->render('tour/edit', [
             'tour'          => $tour,
             'itinerary'     => (new TourItinerary())->where('tour_id', $id),
@@ -180,18 +209,14 @@ class TourController extends BaseController
             'images'        => (new TourImage())->where('tour_id', $id),
             'categories'    => $this->getAvailableCategories(),
             'allSuppliers'  => $allSuppliers,
+            'suppliers'     => $assignedSuppliers,
             'errors'        => [],
-
-            'suppliers'     => (new TourSupplier())->builder()
-                ->select('tour_supplier.*, supplier.name as supplier_name, supplier.type as supplier_type')
-                ->join('supplier', 'supplier.id', '=', 'tour_supplier.supplier_id')
-                ->where('tour_supplier.tour_id', $id)
-                ->get(),
-
         ]);
     }
 
-    // [POST] Cập nhật thông tin chung
+    /**
+     * [POST] Cập nhật thông tin cơ bản của Tour (Tên, Danh mục, Mô tả)
+     */
     public function update(Request $req): Response
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -204,13 +229,14 @@ class TourController extends BaseController
             return $this->redirect(route('tour.index'));
         }
 
+        // 1. Lấy dữ liệu Input
         $data = [
             'name'          => trim((string)$req->input('name')),
             'category_id'   => (int)($req->input('category_id')),
             'description'   => trim((string)$req->input('description')),
-          
         ];
 
+        // 2. Validate
         $rules = [
             'name'          => 'required|max:255',
             'category_id'   => 'required|exists:tour_category,id',
@@ -226,6 +252,7 @@ class TourController extends BaseController
         $v = new Validator($data, $rules, $messages);
 
         if ($v->fails()) {
+            // Nếu lỗi, load lại toàn bộ dữ liệu để hiển thị lại trang edit
             $tour = $tourModel->find($id);
             $oldData = array_merge($tour, $data);
 
@@ -233,18 +260,18 @@ class TourController extends BaseController
                 'tour'       => $tour,
                 'errors'     => $v->errors(),
                 'old'        => $oldData,
+                // ... (Load lại các dữ liệu phụ trợ khác giống hàm edit) ...
                 'itinerary'  => (new TourItinerary())->where('tour_id', $id),
                 'prices'     => (new TourPrice())->where('tour_id', $id),
                 'policy'     => (new TourPolicy())->firstWhere('tour_id', $id),
                 'suppliers'  => (new TourSupplier())->where('tour_id', $id),
-                'images'     => (new TourImage())->where('tour_id', $id),               
+                'images'     => (new TourImage())->where('tour_id', $id),              
                 'categories' => $this->getAvailableCategories(),
-                
-                
             ]);
         }
 
         try {
+            // 3. Update vào DB
             $tourModel->update($id, $data);
             $_SESSION['flash_success'] = "Cập nhật thông tin cơ bản Tour thành công.";
         } catch (\Throwable $e) {
@@ -254,31 +281,35 @@ class TourController extends BaseController
         return $this->redirect(route('tour.edit', ['id' => $id]));
     }
 
-    // Trong Class TourController
+    /**
+     * [POST] Bật/Tắt trạng thái hiển thị của Tour (Active/Inactive)
+     */
+    public function toggleStatus(Request $req): Response
+    {
+        $id = (int)($req->params['id'] ?? 0);
+        
+        // Lấy giá trị active từ form gửi lên (0 hoặc 1)
+        $newStatus = (int)$req->input('is_active'); 
 
-        public function toggleStatus(Request $req): Response
-        {
-            $id = (int)($req->params['id'] ?? 0);
-            
-            // Lấy giá trị active từ form gửi lên (0 hoặc 1)
-            $newStatus = (int)$req->input('is_active'); 
-
-            if ($id > 0) {
-                try {
-                    // Cập nhật trong DB
-                    (new \App\Models\Tour())->update($id, ['is_active' => $newStatus]);
-                    
-                    $_SESSION['flash_success'] = "Đã thay đổi trạng thái Tour thành công.";
-                } catch (\Throwable $e) {
-                    $_SESSION['flash_error'] = "Lỗi: Không thể cập nhật trạng thái.";
-                }
+        if ($id > 0) {
+            try {
+                // Cập nhật trong DB
+                (new \App\Models\Tour())->update($id, ['is_active' => $newStatus]);
+                
+                $_SESSION['flash_success'] = "Đã thay đổi trạng thái Tour thành công.";
+            } catch (\Throwable $e) {
+                $_SESSION['flash_error'] = "Lỗi: Không thể cập nhật trạng thái.";
             }
+        }
 
-    // Quay lại trang danh sách
-    return $this->redirect(route('tour.index'));
-}
+        // Quay lại trang danh sách
+        return $this->redirect(route('tour.index'));
+    }
 
-    // [POST] Xóa Tour
+    /**
+     * [POST] Xóa Tour
+     * Xử lý: Kiểm tra ID -> Thực hiện xóa -> Bắt lỗi nếu Tour đang có dữ liệu ràng buộc.
+     */
     public function delete(Request $req): Response
     {
         if (session_status() === PHP_SESSION_NONE) session_start();
@@ -306,6 +337,7 @@ class TourController extends BaseController
                 $_SESSION['flash_error'] = "Không thể xóa Tour <strong>{$name}</strong>. Lỗi xóa không xác định.";
             }
         } catch (\Throwable $e) {
+            // Lỗi này thường do ràng buộc khóa ngoại (đã có booking, lịch khởi hành...)
             error_log("[Tour.delete] Lỗi khi xóa ID={$id}: " . $e->getMessage());
             $_SESSION['flash_error'] = "Không thể xóa Tour. Tour đang có Đợt khởi hành hoặc Booking liên quan.";
         }
@@ -316,7 +348,10 @@ class TourController extends BaseController
     // XỬ LÝ LỊCH TRÌNH (ITINERARY)
     // =========================================================================
 
-    // [POST] Cập nhật Lịch trình
+    /**
+     * [POST] Cập nhật Lịch trình chi tiết
+     * Nhận mảng dữ liệu các ngày -> Loop -> Update hoặc Create mới.
+     */
     public function updateItinerary(Request $req): Response
     {
         $tourId = (int)($req->params['id'] ?? 0);
@@ -325,6 +360,7 @@ class TourController extends BaseController
         $rawItems = $req->input('itineraries');
         $items = is_array($rawItems) ? $rawItems : [];
 
+        // 1. Validate sơ bộ
         foreach ($items as $item) {
             if (empty($item['title'])) {
                 $_SESSION['flash_error'] = "Có một ngày lịch trình bị thiếu tiêu đề.";
@@ -336,11 +372,12 @@ class TourController extends BaseController
             $itineraryModel = new TourItinerary();
             $items = array_values($items); // Reset keys về 0,1,2... để làm day_no
 
+            // 2. Duyệt qua từng ngày và lưu
             foreach ($items as $index => $data) {
                 $currentId = (int)($data['id'] ?? 0);
                 $saveData = [
                     'tour_id' => $tourId,
-                    'day_no'  => $index + 1,
+                    'day_no'  => $index + 1, // Tự động đánh số ngày
                     'title'   => trim($data['title']),
                     'content' => trim($data['content'] ?? ''),
                 ];
@@ -360,7 +397,9 @@ class TourController extends BaseController
         return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=itinerary');
     }
 
-    // [POST] Xóa 1 dòng lịch trình
+    /**
+     * [POST] Xóa một mục lịch trình (Một ngày cụ thể)
+     */
     public function deleteItineraryItem(Request $req): Response
     {
         $itineraryId = (int)($req->params['id'] ?? 0);
@@ -389,8 +428,9 @@ class TourController extends BaseController
     // XỬ LÝ GIÁ TOUR (PRICING)
     // =========================================================================
 
-    // [POST] Cập nhật Giá Tour
-// [POST] Cập nhật Giá Tour (Phiên bản mới: Đơn giản hóa, không chia ngày)
+    /**
+     * [POST] Cập nhật Bảng giá Tour (Người lớn / Trẻ em / Em bé)
+     */
     public function updatePrice(Request $req): Response
     {
         $tourId = (int)($req->params['id'] ?? 0);
@@ -402,7 +442,7 @@ class TourController extends BaseController
         try {
             $priceModel = new TourPrice();
             
-            // Lấy danh sách ID giá cũ của tour này để so sánh (biết cái nào cần update, cái nào insert)
+            // Lấy danh sách ID giá cũ của tour này để kiểm tra tồn tại
             $existingRecords = $priceModel->where('tour_id', $tourId);
             $existingIds = array_column($existingRecords, 'id');
             
@@ -414,14 +454,13 @@ class TourController extends BaseController
                 $id = (int)($p['id'] ?? 0);
                 
                 // Chuẩn bị dữ liệu lưu xuống DB
-                // QUAN TRỌNG: Tự động set ngày hiệu lực từ quá khứ xa đến tương lai xa
-                // Để đảm bảo giá này luôn có hiệu lực khi booking tra cứu
+                // Thiết lập ngày hiệu lực mặc định từ năm 2000 -> 2100
                 $saveData = [
                     'tour_id'        => $tourId,
                     'pax_type'       => $p['pax_type'],
                     'base_price'     => (float)($p['base_price'] ?? 0),
-                    'effective_from' => '2000-01-01', // Ngày mặc định
-                    'effective_to'   => '2100-12-31'  // Ngày mặc định
+                    'effective_from' => '2000-01-01', 
+                    'effective_to'   => '2100-12-31' 
                 ];
 
                 if ($id > 0 && in_array($id, $existingIds)) {
@@ -433,9 +472,6 @@ class TourController extends BaseController
                 }
             }
             
-            // (Optional) Có thể thêm logic xóa các ID cũ không còn nằm trong danh sách gửi lên
-            // Tuy nhiên với giao diện cố định 3 dòng (Adult, Child, Infant) thì thường không cần xóa.
-
             $_SESSION['flash_success'] = "Cập nhật bảng giá thành công.";
         } catch (\Throwable $e) {
             error_log("[Price Update Error] " . $e->getMessage());
@@ -449,27 +485,32 @@ class TourController extends BaseController
     // XỬ LÝ ẢNH & CÔNG BỐ (IMAGES & PUBLISH)
     // =========================================================================
 
-    // [POST] Upload và Cập nhật hình ảnh
+    /**
+     * [POST] Quản lý Hình ảnh: Upload mới, Đặt ảnh bìa, Xóa ảnh
+     */
     public function updateImages(Request $req): Response
     {
         $tourId = (int)($req->params['id'] ?? 0);
         if ($tourId <= 0) return $this->redirect(route('tour.index'));
 
-        // 1. Đặt ảnh bìa
+        // 1. Xử lý: Đặt ảnh bìa (Set Cover)
         if ($req->input('set_cover_id')) {
             $coverId = (int)$req->input('set_cover_id');
             $imgModel = new TourImage();
+            
+            // Reset tất cả về 0
             $allImages = $imgModel->where('tour_id', $tourId);
             foreach ($allImages as $img) {
                 $imgModel->update($img['id'], ['is_cover' => 0]);
             }
+            // Set ảnh được chọn thành 1
             $imgModel->update($coverId, ['is_cover' => 1]);
 
             $_SESSION['flash_success'] = "Đã đặt ảnh bìa thành công.";
             return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=images');
         }
 
-        // 2. Upload ảnh mới
+        // 2. Xử lý: Upload ảnh mới (Multiple Files)
         if (!empty($_FILES['images']['name'][0])) {
             $files = $_FILES['images'];
             $count = count($files['name']);
@@ -486,16 +527,18 @@ class TourController extends BaseController
                     $name = basename($files['name'][$i]);
                     $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
 
+                    // Chỉ cho phép ảnh
                     if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) continue;
 
+                    // Tạo tên file duy nhất: tour_{id}_{time}_{index}.ext
                     $newFileName = 'tour_' . $tourId . '_' . time() . '_' . $i . '.' . $ext;
                     $destPath = $uploadDir . $newFileName;
 
                     if (move_uploaded_file($tmpName, $destPath)) {
                         $imgModel->create([
-                            'tour_id' => $tourId,
-                            'url'     => '/uploads/tours/' . $newFileName,
-                            'caption' => '',
+                            'tour_id'  => $tourId,
+                            'url'      => '/uploads/tours/' . $newFileName,
+                            'caption'  => '',
                             'is_cover' => 0
                         ]);
                         $insertedCount++;
@@ -508,15 +551,17 @@ class TourController extends BaseController
             }
         }
 
-        // 3. Xóa ảnh
+        // 3. Xử lý: Xóa ảnh
         if ($req->input('delete_image_id')) {
             $delId = (int)$req->input('delete_image_id');
             $imgModel = new TourImage();
             $img = $imgModel->find($delId);
             if ($img) {
+                // Xóa file vật lý
                 $filePath = __DIR__ . '/../../public' . $img['url'];
                 if (file_exists($filePath)) unlink($filePath);
 
+                // Xóa DB
                 $imgModel->delete($delId);
                 $_SESSION['flash_success'] = "Đã xóa hình ảnh.";
             }
@@ -525,7 +570,10 @@ class TourController extends BaseController
        return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=itinerary');
     }
 
-    // [POST] Công bố Tour
+    /**
+     * [POST] Công bố Tour (Chuyển trạng thái sang PUBLISHED)
+     * Yêu cầu bắt buộc: Phải có ít nhất 1 ảnh bìa.
+     */
     public function publish(Request $req): Response
     {
         $tourId = (int)($req->params['id'] ?? 0);
@@ -534,6 +582,7 @@ class TourController extends BaseController
         $imageModel = new TourImage();
         $images = $imageModel->where('tour_id', $tourId);
 
+        // Kiểm tra điều kiện ảnh bìa
         $hasCover = false;
         foreach ($images as $img) {
             if ($img['is_cover'] == 1) {
@@ -547,6 +596,7 @@ class TourController extends BaseController
             return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=images');
         }
 
+        // Cập nhật trạng thái
         (new Tour())->update($tourId, ['state' => 'PUBLISHED']);
 
         $_SESSION['flash_success'] = "Tour đã được công bố thành công!";
@@ -557,8 +607,10 @@ class TourController extends BaseController
     // XỬ LÝ CHÍNH SÁCH & NHÀ CUNG CẤP (POLICY & SUPPLIER)
     // =========================================================================
 
-    // [POST] Cập nhật Chính sách (Hoàn/Hủy)
-  // [POST] Cập nhật Chính sách (Hoàn/Hủy)
+    /**
+     * [POST] Cập nhật Chính sách Hoàn/Hủy
+     * Kiểm tra tồn tại -> Update hoặc Create.
+     */
     public function updatePolicy(Request $req): Response
     {
         $tourId = (int)($req->params['id'] ?? 0);
@@ -581,7 +633,6 @@ class TourController extends BaseController
                 $_SESSION['flash_success'] = "Cập nhật chính sách thành công.";
             } else {
                 // 2b. Nếu CHƯA có -> Tạo mới (Insert)
-                // Cần thêm tour_id vào data để biết chính sách này của tour nào
                 $data['tour_id'] = $tourId;
                 $policyModel->create($data);
                 $_SESSION['flash_success'] = "Đã tạo mới thiết lập chính sách.";
@@ -595,7 +646,10 @@ class TourController extends BaseController
         return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=policy');
     }
 
-    // [POST] Thêm NCC vào Tour
+    /**
+     * [POST] Thêm Nhà Cung Cấp vào Tour
+     * Gán (Link) NCC vào tour thông qua bảng trung gian tour_supplier
+     */
     public function addSupplier(Request $req): Response
     {
         $tourId     = (int)($req->params['id'] ?? 0);
@@ -610,6 +664,7 @@ class TourController extends BaseController
         $tourSupplierModel = new TourSupplier();
 
         try {
+            // Kiểm tra đã gán chưa để tránh trùng lặp
             if ($tourSupplierModel->exists($tourId, $supplierId)) {
                 $_SESSION['flash_error'] = "Nhà cung cấp này đã có trong tour.";
             } else {
@@ -627,7 +682,9 @@ class TourController extends BaseController
         return $this->redirect(route('tour.edit', ['id' => $tourId]) . '?tab=policy');
     }
 
-    // [POST] Xóa NCC khỏi Tour
+    /**
+     * [POST] Gỡ bỏ Nhà Cung Cấp khỏi Tour
+     */
     public function deleteSupplier(Request $req): Response
     {
         $tourId     = (int)($req->params['id'] ?? 0);
