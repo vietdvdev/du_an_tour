@@ -4,17 +4,44 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Đăng nhập hệ thống</title>
-    <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <!-- AdminLTE Theme style -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+
+    <style>
+        /* Tùy chỉnh ảnh nền */
+        body.login-page {
+            background-image: url('https://images.vietnamtourism.gov.vn/vn//images/2024/esim1.jpg'); /* Thay link ảnh của bạn ở đây */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            height: 100vh;
+        }
+
+        /* Tạo lớp phủ mờ để form nổi bật hơn */
+        body.login-page::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.4); /* Làm tối nền 40% */
+            z-index: -1;
+        }
+
+        /* Làm đổ bóng cho hộp đăng nhập */
+        .login-box {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .login-logo a {
+            color: #fff !important;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+    </style>
 </head>
 <body class="hold-transition login-page">
 <div class="login-box">
     <div class="login-logo">
-        <a href="#"><b>Quản Lý</b> Tour</a>
+        <a href="#"><b>Quản Lý Tour</b> </a>
     </div>
     
     <div class="card">
@@ -64,11 +91,8 @@
     </div>
 </div>
 
-<!-- jQuery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<!-- Bootstrap 4 -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
-<!-- AdminLTE App -->
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 </body>
 </html>

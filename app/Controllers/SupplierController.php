@@ -148,7 +148,7 @@ public function update(Request $req): Response
 
     // Quy tắc validation: UNIQUE cần loại trừ ID hiện tại
    $rules = [
-        'name'  => 'required|max:255|unique:supplier,name',
+        'name'  => 'required|max:255|name',
         'type'  => 'required|in:HOTEL,TRANSPORT,RESTAURANT,OTHER',
         // Phone regex: cho phép số, dấu cộng, ngoặc, gạch ngang, khoảng trắng, min 9, max 21
         'phone' => 'required|min:9|max:21|regex:/^[0-9+()\\-\\s]{6,30}$/', 
@@ -162,7 +162,6 @@ public function update(Request $req): Response
     $messages = [
         'name.required' => 'Vui lòng nhập tên nhà cung cấp.',
         'name.max'      => 'Tên tối đa 255 ký tự.',
-        'name.unique'   => 'Tên nhà cung cấp đã tồn tại.',
 
         'type.required' => 'Vui lòng chọn loại nhà cung cấp.', // Bổ sung
         'type.in'       => 'Loại nhà cung cấp không hợp lệ.',

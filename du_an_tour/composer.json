@@ -1,0 +1,23 @@
+{
+  "name": "student/php-mvc-base-pro",
+  "description": "Enhanced PHP MVC OOP base for Laragon + MySQL with utilities, middleware, assets",
+  "type": "project",
+  "require": {},
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    },
+    "files": [
+      "app/Support/helpers.php"
+    ]
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "sort-packages": true
+  },
+  "scripts": {
+    "post-autoload-dump": [
+      "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+    ]
+  }
+}

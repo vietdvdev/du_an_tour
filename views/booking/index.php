@@ -26,7 +26,7 @@ function filterUrl($key, $value) {
                         <i class="fas fa-magic mr-1"></i> Booking Tour yêu cầu
                     </a>
                     <a href="<?= route('booking.create') ?>" class="btn btn-primary font-weight-bold">
-                        <i class="fas fa-plus mr-1"></i> Thêm Booking Mới
+                        <i class="fas fa-plus mr-1"></i>  Booking Tour hệ thống
                     </a>
                 </div>
             </div>

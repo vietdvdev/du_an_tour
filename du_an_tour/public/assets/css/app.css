@@ -1,0 +1,10 @@
+/* Basic starter styles */
+:root{--primary:#0d6efd;--muted:#666}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:#f7f7fb;color:#222;margin:0}
+a{color:var(--primary);text-decoration:none}
+.container{max-width:980px;margin:24px auto;background:#fff;border:1px solid #eee;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+.nav a{margin-right:12px}
+.table{border-collapse:collapse;width:100%}
+.table th,.table td{border:1px solid #eee;padding:8px;text-align:left}
+.badge{display:inline-block;padding:.2rem .5rem;border-radius:.5rem;background:#eef;color:#223}
+
